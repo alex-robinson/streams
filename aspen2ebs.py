@@ -12,11 +12,11 @@ def aspen_to_ebs(fldr="files_aspen",file_in="simu1.rep",file_out="simu1.m"):
     '''
 
     # Generate necessary filenames
-    file_in   = fldr + "/" + file_in 
-    file_out  = fldr + "/" + file_out 
+    file_input   = fldr + "/" + file_in 
+    file_output  = fldr + "/" + file_out 
 
     # Load lines of input file
-    lines = open(file_in,'r').readlines()
+    lines = open(file_input,'r').readlines()
 
     # STEP 1: Filter file to relevant stream information
     # Need to process each 'stream section' of the file that
@@ -46,6 +46,8 @@ def aspen_to_ebs(fldr="files_aspen",file_in="simu1.rep",file_out="simu1.m"):
             line1 = line1.replace(" e-"," -")
             line1 = line1.replace("GMe-","GM-")
             line1 = line1.replace("STREAM ID","STREAM   ")
+            line1 = line1.replace("TEMP","T   ")
+            line1 = line1.replace("PRES","p   ")
             line1 = line1.replace("WATER","H20  ")
             line1 = line1.replace("AR","Ar")
             line1 = line1.replace("KG/HR","mdot ")          # Mass flow rate
@@ -87,7 +89,7 @@ def aspen_to_ebs(fldr="files_aspen",file_in="simu1.rep",file_out="simu1.m"):
     ncols    = data.shape[1]
 
     # Make the output array and headings we want for each column
-    outh = array(["STREAM","mdot","T","p","X","SE","Ar","CO2","CO","COS","H2O","CH4","H2","H2S","N2","O2","SO2","H"])
+    outh = array(["STREAM","mdot","T","p","X","SE","Ar","CO2","CO","COS","H2O","CH4","H2","H2S","N2","O2","SO2","XX","H"])
     ncolsx = len(outh) 
     out = zeros((nstreams,ncolsx))
 
@@ -97,11 +99,12 @@ def aspen_to_ebs(fldr="files_aspen",file_in="simu1.rep",file_out="simu1.m"):
         h0 = headings[j]
         
         if h0 in outh:
+            print "Writing " + h0 + " to column " + str(j)
             out[:,outh==h0] = data[:,headings==h0]
 
     ## Make unit conversions
-    out[:,outh=="mdot"] = out[:,outh=="mdot"] * (1/3600)   # kg/h => kg/s
-    out[:,outh=="SE"] = out[:,outh=="SE"] * (1000)         # CAL/GM-K => CAL/kg-K
+    out[:,outh=="mdot"] = out[:,outh=="mdot"] * (1.0/3600.0)   # kg/h => kg/s
+    out[:,outh=="SE"] = out[:,outh=="SE"] * (1e3)         # CAL/GM-K => CAL/kg-K
 
 
     # Now convert the composition values to fractions
@@ -112,14 +115,18 @@ def aspen_to_ebs(fldr="files_aspen",file_in="simu1.rep",file_out="simu1.m"):
         tot = sum( out[s,inds] )
         if tot > 0.0: out[s,inds] = out[s,inds] / tot
         #print sum(out[s,inds])  # check each row sums to 1!
-    
+
+        # Also eliminate nan values (fortran program can't read them)
+        out[s,isnan(out[s,:])] = 0.0
+
     ## FINAL STEP: write the data to output file
-    outf = open(file_out,'w')
+    outf = open(file_output,'w')
+    #outf.write("%"+ " ".join(outh)+"\n")
     outf.write("data{1} = [\n")
     for s in arange(0,nstreams):
-        line = ["{0:.6f}".format(v) for v in out[s,:]]
+        line = ["{0:12.6f}".format(v) for v in out[s,:]]
+        line[0] = "{0:3g}".format(out[s,0])   # Correct the stream number to be an integer!
         line = " ".join(line)+"\n"
-        line = line.replace("nan","0")
         outf.write(line)
     outf.write("];\n\n")
 
