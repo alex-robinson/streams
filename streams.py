@@ -22,13 +22,8 @@ fcomposition   = "composition.prn"
    
 for f_loop in range(1,4,1):
 
-
-##    open(fflows, 'w').close()
-##    open(fcomposition, 'w').close()
-##    open('gate.inp', 'w').close()
-
     f_in =  'CombinedRes'+str(f_loop)+'.m' # format looks in { } and replaces it with var but formatted as a string, so var = 1, var = 2, etc
-
+    f_in = 'files_aspen/simu1.m'
 ### Try loading the values into an 'nparray' (numpy array) from the file #####
 ### If the file does not exist and an IOError occurs, exit               #####
     try:
