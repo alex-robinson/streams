@@ -5,7 +5,53 @@
 import os,sys,subprocess,string
 
 
-def aspen_to_ebs(fldr="files_aspen",file_in="simu1.rep",file_out="simu1.m"):
+def load_ebsilon(fldr="./",file_in="CombinedRes1.m"):
+    '''
+    Load an ebsilon output array of stream data.
+    Store data in an 'nparray'.
+    If the file doesn't load, exit
+    '''
+    
+    ### Try loading the values into an 'nparray' (numpy array) from the file #####
+    ### If the file does not exist and an IOError occurs, exit               #####
+    
+    # Generate necessary filename
+    file_input = fldr + "/" + file_in 
+
+    try:
+        out = loadtxt(file_input, skiprows = (1),comments = ']')
+    except IOError as e:
+        print('Unable to locate the file:', f_in, 'Ending Program.''\n', e)
+        input("\nPress any key to exit.")
+        sys.exit()
+    
+    ### Sort the list by row (using the first column to decide the order) ##
+    order = out[:,0].argsort()
+    out = out[order,:]
+
+    return out
+
+def write_ebsilon(out,file_output):
+    '''
+    Write an array of stream data to the ebsilon .m output format.
+    '''
+    
+    nstreams = out.shape[0]
+
+    outf = open(file_output,'w')
+    outf.write("data{1} = [\n")
+    for s in arange(0,nstreams):
+        line = ["{0:12.6f}".format(v) for v in out[s,:]]
+        line[0] = "{0:3g}".format(out[s,0])   # Correct the stream number to be an integer!
+        line = " ".join(line)+"\n"
+        outf.write(line)
+    outf.write("];\n\n")
+    
+    print "Stream data written to: " + file_output
+
+    return 
+
+def load_aspen(fldr="files_aspen",file_in="simu1.rep",file_out="simu1.m",write_mfile=True):
     '''
     Given the aspen output file located at fldr/in,
     convert the format to the .m table for gatex at fldr/out 
@@ -28,9 +74,12 @@ def aspen_to_ebs(fldr="files_aspen",file_in="simu1.rep",file_out="simu1.m"):
     skipchars = [" FROM"," TO"," SUBSTREAM"," PHASE"," COMPONENTS"," TOTAL FLOW",
                  " STATE"," ENTHALPY","ENTROPY","DENSITY"]
     addchars = [" STREAM ID","   CO2 ","   WATER ","   N2 ","   O2 ","   H2 ",
-                "   CH4 ","   AR ","   KG/HR ", "   TEMP ","   PRES ","   KCAL/KG ","   CAL/GM-K "]
+                "   CH4 ","   AR ","   KG/HR ", "   TEMP ","   PRES ","   VFRAC ",
+                "   KCAL/KG ","   CAL/GM-K "]
     ncols = len(addchars)
-
+    
+    # Loop over the lines and add those inside of the 'stream section'
+    # Modify some strings to make a proper table
     for line in lines:
         
         if in_stream and " ASPEN PLUS " in line:
@@ -48,6 +97,7 @@ def aspen_to_ebs(fldr="files_aspen",file_in="simu1.rep",file_out="simu1.m"):
             line1 = line1.replace("STREAM ID","STREAM   ")
             line1 = line1.replace("TEMP","T   ")
             line1 = line1.replace("PRES","p   ")
+            line1 = line1.replace("VFRAC","x    ")
             line1 = line1.replace("WATER","H20  ")
             line1 = line1.replace("AR","Ar")
             line1 = line1.replace("KG/HR","mdot ")          # Mass flow rate
@@ -60,10 +110,13 @@ def aspen_to_ebs(fldr="files_aspen",file_in="simu1.rep",file_out="simu1.m"):
 
 
     # Check that we have a multiple of ncols
-    print "ncols =",ncols
-    print "nlines =",len(lines1)
+    print "ncols =",ncols," nlines=",len(lines1)
     nrep = len(lines1)/ncols
+    print "If this is a whole number, data was properly read: " + str(float(len(lines1))/float(ncols))
 
+    # Now, generate a new table, by pasting the multiples
+    # on as additional columns. In this way, each column
+    # represents one stream 
     lines2 = lines1[0:ncols]
 
     for n in arange(1,nrep):
@@ -89,7 +142,7 @@ def aspen_to_ebs(fldr="files_aspen",file_in="simu1.rep",file_out="simu1.m"):
     ncols    = data.shape[1]
 
     # Make the output array and headings we want for each column
-    outh = array(["STREAM","mdot","T","p","X","SE","Ar","CO2","CO","COS","H2O","CH4","H2","H2S","N2","O2","SO2","XX","H"])
+    outh = array(["STREAM","mdot","T","p","x","SE","Ar","CO2","CO","COS","H2O","XX","CH4","H2","H2S","N2","O2","SO2","H"])
     ncolsx = len(outh) 
     out = zeros((nstreams,ncolsx))
 
@@ -99,13 +152,12 @@ def aspen_to_ebs(fldr="files_aspen",file_in="simu1.rep",file_out="simu1.m"):
         h0 = headings[j]
         
         if h0 in outh:
-            print "Writing " + h0 + " to column " + str(j)
+            #print "Writing " + h0 + " to column " + str(j)
             out[:,outh==h0] = data[:,headings==h0]
 
     ## Make unit conversions
     out[:,outh=="mdot"] = out[:,outh=="mdot"] * (1.0/3600.0)   # kg/h => kg/s
     out[:,outh=="SE"] = out[:,outh=="SE"] * (1e3)         # CAL/GM-K => CAL/kg-K
-
 
     # Now convert the composition values to fractions
     elements = array(["Ar","CO2","CO","COS","H2O","CH4","H2","H2S","N2","O2","SO2"])
@@ -118,16 +170,18 @@ def aspen_to_ebs(fldr="files_aspen",file_in="simu1.rep",file_out="simu1.m"):
 
         # Also eliminate nan values (fortran program can't read them)
         out[s,isnan(out[s,:])] = 0.0
+    
+    # Reorder the data by stream number
+    ### Sort the list by row (using the first column to decide the order) ##
+    order = out[:,0].argsort()
+    out = out[order,:]
 
-    ## FINAL STEP: write the data to output file
-    outf = open(file_output,'w')
-    #outf.write("%"+ " ".join(outh)+"\n")
-    outf.write("data{1} = [\n")
-    for s in arange(0,nstreams):
-        line = ["{0:12.6f}".format(v) for v in out[s,:]]
-        line[0] = "{0:3g}".format(out[s,0])   # Correct the stream number to be an integer!
-        line = " ".join(line)+"\n"
-        outf.write(line)
-    outf.write("];\n\n")
-
+    ## FINAL STEP: if desired, also write the data to output file in ebsilon format
+    if write_mfile: write_ebsilon(out,file_output)
+    
+    # Return the array of stream data in ebsilon format
     return out 
+
+
+
+
