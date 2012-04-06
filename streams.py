@@ -6,6 +6,7 @@ import os,sys,subprocess,string
 from xlwt import Workbook                             # For writing to an excel file
 from xlrd import open_workbook                        # For reading an existing workbook
 from xlutils.copy import copy                         # For writing to an existing excel file
+from collections import OrderedDict
 
 ## !!! THE STREAM WITH THE REFERENCE PRESSURE AND TEMPERATURE IS STREAM NUMBER 1 !!! ##
   
@@ -340,18 +341,15 @@ def exergy_to_excel(exergy,results,filename="results.xls",newBook=True,line=1):
     
     # Get the list of variables we will be writing
     headings = results.keys()
-
-    # Write the headings to the sheet
-    # (If sheet existed, this will just overwrite the same headings)
-    for j in arange(0,len(headings)):
-        sheet1.write(0,j,headings[j])    # zeroth line first  column
     
-    # Now write the calculated values
-    # Write the results of the current analysis to 
-    # a row corresponding to the value of f_loop
-    for j in arange(0,len(headings)):
-        h = headings[j]
-        sheet1.write(line,j,results[h])
+    # Now loop over each variable and write it to the correct place
+    # along with the heading
+    # (If sheet existed, this will just overwrite the heading)
+    j = -1
+    for key, value in results.iteritems():
+        j = j + 1
+        sheet1.write(0,j,key)
+        sheet1.write(line,j,value)
 
     # Save the book to the actual excel file
     book.save('results.xls')

@@ -8,6 +8,7 @@
 
 # Import some handy modules
 import os,sys,subprocess,string
+from collections import OrderedDict
 
 # First, define the central script directory and 
 # location of gatex.exe and the streams.py functions
@@ -57,11 +58,15 @@ for f_loop in range(1,6,1):
 
     # Save the results inside of a dictionary for writing easily.
     # Save them here in the order they should appear in excel!
-    results = dict( 
-        Ef = Ef, Ep1 = Ep1, Ep2 = Ep2,
-        ED1 = ED1, ED2 = ED2,
-        eff1 = eff1, eff2 = eff2
-    )
+    results = OrderedDict([ 
+        ('Ef',   Ef),
+        ('Ep1',  Ep1),
+        ('Ep2',  Ep2),
+        ('ED1',  ED1),
+        ('ED2',  ED2),
+        ('eff1', eff1),
+        ('eff2', eff2)
+    ])
 
     ###############################################################################
     
