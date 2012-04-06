@@ -45,21 +45,33 @@ for f_loop in range(1,6,1):
     savetxt(f_out,E,fmt="%10.5f")
 
 
-    # Calculate some interesting results and output to Excel ############################
+    ### Calculate some interesting results ########################################
     
-    Ecalcs = dict( 
+    Ef   = E[7,8]
+    Ep1  = E[4,8]-E[2,8]
+    Ep2  = E[6,8]-E[1,8]
+    ED1  = Ef - Ep1
+    ED2  = Ef - Ep2
+    eff1 = Ep1/Ef*1E02
+    eff2 = Ep2/Ef*1E02
 
-        Ef   = E[7,8],
-        Ep1  = E[4,8]-E[2,8],
-        Ep2  = E[6,8]-E[1,8],
-        ED1  = Ef - Ep1,
-        ED2  = Ef - Ep2,
-        eff1 = Ep1/Ef*1E02,
-        eff2 = Ep2/Ef*1E02
-
+    # Save the results inside of a dictionary for writing easily.
+    # Save them here in the order they should appear in excel!
+    results = dict( 
+        Ef = Ef, Ep1 = Ep1, Ep2 = Ep2,
+        ED1 = ED1, ED2 = ED2,
+        eff1 = eff1, eff2 = eff2
     )
+
+    ###############################################################################
     
+
+    # Write the results to Excel file
+    # If f_loop is 1, then it should be a new book!
     newBook = False
     if f_loop == 1: newBook = True
-    exergy_to_excel(exergy=E,results=Ecalcs,filename="results.xls",newBook=newBook,line=f_loop)
+    exergy_to_excel(exergy=E,results=results,filename="results.xls",newBook=newBook,line=f_loop)
+
+
+
 
