@@ -4,6 +4,8 @@
 
 import os,sys,subprocess,string
 from xlwt import Workbook                             # For writing to an excel file
+from xlrd import open_workbook                        # For reading an existing workbook
+from xlutils.copy import copy                         # For writing to an existing excel file
 
 ## !!! THE STREAM WITH THE REFERENCE PRESSURE AND TEMPERATURE IS STREAM NUMBER 1 !!! ##
   
@@ -202,6 +204,9 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe"):
 
     '''
     
+    print '======================'
+    print "Generating GATEX input files"
+
     # Define important gatex filenames
     gatex_f1 = os.path.join(fldr,"gate.inp")
     gatex_f2 = os.path.join(fldr,"flows.prn")
@@ -289,31 +294,68 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe"):
     # If it worked, load the exergies
     E = loadtxt('exergies.m', skiprows = (37),comments = ']')
     
-    # Do some calculations to check the output    
-    Ef   = E[7,7]
-    Ep1  = E[4,7]-E[2,7]
-    Ep2  = E[6,7]-E[1,7]
-    ED1  = Ef - Ep1
-    ED2  = Ef - Ep2
-    eff1 = Ep1/Ef*1E02
-    eff2 = Ep2/Ef*1E02
-    
-    print 'Checking GATEX output:'
-    # print E
-    print 'Ef  : ', '%.2f'%(Ef)
-    print 'Ep1 : ', '%.2f'%(Ep1), '\t##### Streams: 5-3'
-    print 'ED1 : ', '%.2f'%(ED1)      
-    print 'eff1: ', '%.2f'%(eff1)     
+    # Add a first column that contains the stream number
+    E = insert(E,0,streams[:,0],axis=1)
 
-    print 'Ep2 : ', '%.2f'%(Ep2), '\t##### Streams: 7-2'
-    print 'ED2 : ', '%.2f'%(ED2)         
-    print 'eff2: ', '%.2f'%(eff2)        
-    print '======================'
+    print 'Checking GATEX output:'
+    set_printoptions(precision=3,linewidth=150)
+    print "Exergy table ="
+    print "Columns: stream num., % m [kg/s], T [K], p[bar], H [MW], S [kW/K], EPH [MW], ECH [MW], E [MW]"
+    print E      
     #---------------------------------------------------------------------##
 
     # Done, return the table of exergies
+    # Dimensions: n_streams X n_vars
     return E
 
+def myWorkbook(filename):
+    '''
+    To open a writable copy of an excel file.
+    First open a read-only copy of the file and
+    then copy to a writable version
+    '''
 
+    rb = open_workbook(filename,formatting_info=True)
+    wb = copy(rb) #a writable copy (I can't read values out of this, only write to it)
+
+    # Return the writable workbook.
+    return(wb)
+
+def exergy_to_excel(exergy,results,filename="results.xls",newBook=True,line=1):
+    '''
+
+    '''
+    
+    ## First, make a new empty workbook object if needed
+    if newBook:
+        book = Workbook()
+
+        # Add a sheet called "Results" to the workbook
+        sheet1 = book.add_sheet('Results')    
+
+    ## Or open the old one *using copy*
+    else:
+        book = myWorkbook(filename)
+        sheet1 = book.get_sheet(0)   # Open the first sheet
+    
+    # Get the list of variables we will be writing
+    headings = results.keys()
+
+    # Write the headings to the sheet
+    # (If sheet existed, this will just overwrite the same headings)
+    for j in arange(0,len(headings)):
+        sheet1.write(0,j,headings[j])    # zeroth line first  column
+    
+    # Now write the calculated values
+    # Write the results of the current analysis to 
+    # a row corresponding to the value of f_loop
+    for j in arange(0,len(headings)):
+        h = headings[j]
+        sheet1.write(line,j,results[h])
+
+    # Save the book to the actual excel file
+    book.save('results.xls')
+
+    return
 
 

@@ -1,23 +1,31 @@
+######
+## exergycalcs.py
+## This script should be run from a directory that 
+## contains results of a simulation with ebsilon or aspen
+## This should be loaded in the pylab environment: ipython -pylab
+## Call: execfile("exergycalcs.py")
+######
 
-# Import the exergy calculating functions
-scriptdir = "../"
-execfile(scriptdir+"streams.py")
+# Import some handy modules
+import os,sys,subprocess,string
+
+# First, define the central script directory and 
+# location of gatex.exe and the streams.py functions
+# CHANGE THIS TO THE LOCATION ON YOUR COMPUTER:
+SCRIPTDIR = "/Users/robinson/Dropbox/zCalculators/streams.git/"
+
+# Now define locations of gatex and streams.py
+GATEX     = os.path.join(SCRIPTDIR, "gatex_pc_if97_mj.exe")
+STREAMS   = os.path.join(SCRIPTDIR, "streams.py")
+
+# And import the needed exergy calculating functions
+execfile(STREAMS)
 
 
-## First, make a new empty workbook object
-book = Workbook()
-
-# Add a sheet called "Results" to the workbook
-sheet_cur = book.add_sheet('Results')
-
-# Write some headings to the sheet
-sheet_cur.write(0,0,'Ef')    # zeroth line first  column
-sheet_cur.write(0,1,'Ep1')   # zeroth line second column
-sheet_cur.write(0,2,'ED1')   # zeroth line third  column
-sheet_cur.write(0,3,'Eff1')
-sheet_cur.write(0,5,'Ep2')
-sheet_cur.write(0,6,'ED2')
-sheet_cur.write(0,7,'eff2')
+########
+## BELOW HERE, begin the
+## individual calculations
+########
 
 ## Now perform calculations that we will save inside the workbook
 ## Loop over the CombinedRes files and output exergy tables
@@ -30,7 +38,7 @@ for f_loop in range(1,6,1):
     streams = load_ebsilon(file_in=f_in)
 
     # Calculate exergies using GATEX
-    E = calc_exergy_gatex(streams,gatex_exec=scriptdir+"gatex_pc_if97_mj.exe")
+    E = calc_exergy_gatex(streams,gatex_exec=GATEX)
 
     # Generate an ouput filename and save exergy array
     f_out = 'exergies'+str(f_loop)+'.txt'
@@ -38,25 +46,20 @@ for f_loop in range(1,6,1):
 
 
     # Calculate some interesting results and output to Excel ############################
-
-    Ef   = E[7,7]
-    Ep1  = E[4,7]-E[2,7]
-    Ep2  = E[6,7]-E[1,7]
-    ED1  = Ef - Ep1
-    ED2  = Ef - Ep2
-    eff1 = Ep1/Ef*1E02
-    eff2 = Ep2/Ef*1E02
     
-    # Write the results of the current analysis to 
-    # a row corresponding to the value of f_loop
-    sheet_cur.write(f_loop,0,Ef)
-    sheet_cur.write(f_loop,1,Ep1)
-    sheet_cur.write(f_loop,2,ED1)
-    sheet_cur.write(f_loop,3,eff1)
-    sheet_cur.write(f_loop,5,Ep2)
-    sheet_cur.write(f_loop,6,ED2)
-    sheet_cur.write(f_loop,7,eff2)
+    Ecalcs = dict( 
 
-# Save the book to the actual excel file
-book.save('results.xls')
+        Ef   = E[7,8],
+        Ep1  = E[4,8]-E[2,8],
+        Ep2  = E[6,8]-E[1,8],
+        ED1  = Ef - Ep1,
+        ED2  = Ef - Ep2,
+        eff1 = Ep1/Ef*1E02,
+        eff2 = Ep2/Ef*1E02
+
+    )
+    
+    newBook = False
+    if f_loop == 1: newBook = True
+    exergy_to_excel(exergy=E,results=Ecalcs,filename="results.xls",newBook=newBook,line=f_loop)
 
