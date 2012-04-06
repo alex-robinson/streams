@@ -28,15 +28,22 @@ execfile(STREAMS)
 ## individual calculations
 ########
 
+# Make a list of all simulation filenames that we will be 
+# calculating exergies for.
+filenames =  [ 'CombinedRes'+str(f_loop)+'.m' for f_loop in range(1,6,1) ] 
+
+
 ## Now perform calculations that we will save inside the workbook
-## Loop over the CombinedRes files and output exergy tables
-for f_loop in range(1,6,1):
-    
-    # Generate the current filename
-    f_in =  'CombinedRes'+str(f_loop)+'.m'
+## Loop over the filenames and output exergy tables
+
+f_loop = 0  # Counter
+
+for f_in in filenames:
+
+    f_loop = f_loop + 1   # Increment the counter
     
     # Load the stream data from the input file
-    streams = load_ebsilon(file_in=f_in)
+    streams = load_streams(file_in=f_in)
 
     # Calculate exergies using GATEX
     E = calc_exergy_gatex(streams,gatex_exec=GATEX)
@@ -44,7 +51,6 @@ for f_loop in range(1,6,1):
     # Generate an ouput filename and save exergy array
     f_out = 'exergies'+str(f_loop)+'.txt'
     savetxt(f_out,E,fmt="%10.5f")
-
 
     ### Calculate some interesting results ########################################
     

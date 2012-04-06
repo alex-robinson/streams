@@ -12,6 +12,31 @@ from collections import OrderedDict
   
 #-------------------------------------------------------------------##
 
+def load_streams(fldr="./",file_in="CombinedRes1.m",filetype=None):
+    '''
+    Generic function to load streams. This function
+    will determine automatically whether to use
+    load_ebsilon or load_aspen based on the input
+    filename. Or this can be set with the argument
+    filetype="ebsilon"
+    '''
+    
+    if filetype is None:
+        filetype = "ebsilon"
+        if ".rep" in file_in: filetype = "aspen"
+
+    if filetype == "ebsilon":
+        streams = load_ebsilon(fldr,file_in)
+    elif filetype == "aspen":
+        streams = load_aspen(fldr,file_in)
+    else:
+        print "Error: file type not recognized: " + filetype
+        streams = None
+    
+    print "Stream data loaded from: " + os.path.join(fldr,file_in)
+
+    return streams
+
 def load_ebsilon(fldr="./",file_in="CombinedRes1.m"):
     '''
     Load an ebsilon output array of stream data.
@@ -58,15 +83,19 @@ def write_ebsilon(out,file_output):
 
     return 
 
-def load_aspen(fldr="files_aspen",file_in="simu1.rep",file_out="simu1.m",write_mfile=True):
+def load_aspen(fldr="files_aspen",file_in="simu1.rep",write_mfile=True):
     '''
-    Given the aspen output file located at fldr/in,
+    Given the aspen output file located at fldr/file_in,
     convert the format to the .m table for gatex at fldr/out 
     '''
 
     # Generate necessary filenames
-    file_input   = fldr + "/" + file_in 
-    file_output  = fldr + "/" + file_out 
+    file_input   = fldr + "/" + file_in     
+    file_output = file_input.replace(".rep",".m")
+    
+    print "Aspen files"
+    print "In  :" + file_input
+    print "Out :" + file_output
 
     # Load lines of input file
     lines = open(file_input,'r').readlines()
