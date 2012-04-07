@@ -31,7 +31,7 @@ execfile(STREAMS)
 # Make a list of all simulation filenames that we will be 
 # calculating exergies for.
 #filenames =  [ 'CombinedRes'+str(f_loop)+'.m' for f_loop in range(1,6,1) ] 
-filenames = ['simu1.rep']
+filenames = [ 'simu1.rep' ]
 
 ## Now perform calculations that we will save inside the workbook
 ## Loop over the filenames and output exergy tables
@@ -50,38 +50,49 @@ for f_in in filenames:
 
     # Generate an ouput filename and save exergy array
     f_out = 'exergies'+str(f_loop)+'.txt'
+    f_out = f_in.replace(".m",".txt")
     savetxt(f_out,E,fmt="%10.5f")
 
     ### Calculate some interesting results ########################################
+    # Define the exergy of the fuel 'Ef' and the physical exergy 'Ep'
+    # for each component (and any other interesting quantities)
+    # Then calculate general quantities for each component
     
-    Ef   = E[7,8]
-    Ep1  = E[4,8]-E[2,8]
-    Ep2  = E[6,8]-E[1,8]
-    ED1  = Ef - Ep1
-    ED2  = Ef - Ep2
-    eff1 = Ep1/Ef*1E02
-    eff2 = Ep2/Ef*1E02
 
-    # Save the results inside of a dictionary for writing easily.
-    # Save them here in the order they should appear in excel!
-    results = OrderedDict([ 
-        ('Ef',   Ef),
-        ('Ep1',  Ep1),
-        ('Ep2',  Ep2),
-        ('ED1',  ED1),
-        ('ED2',  ED2),
-        ('eff1', eff1),
-        ('eff2', eff2)
-    ])
+    ## COMPONENT DEFINTIONS ##############
+
+    ## COMPONENT 1 ##
+    comp1 = OrderedDict()
+    comp1['name'] = "Component 1"
+    comp1['Ef']   = E[8,8]
+    comp1['Ep']   = E[5,8] - E[3,8]
+    
+    ## COMPONENT 2 ##
+    comp2 = OrderedDict()
+    comp2['name'] = "Component 2"
+    comp2['Ef']  = E[8,8]
+    comp2['Ep']  = E[7,8] - E[2,8]
+    
+    ######################################
+
+    ## Now make a list containing the results of all components
+    components = [comp1,comp2]
+    
+    # Calculate variables for each component,
+    # like the exergy destruction 'ED' and
+    # the exergetic efficiency 'eff'
+    for comp in components:
+        comp['ED']  = comp['Ef'] - comp['Ep']
+        comp['eff'] = comp['Ep']/comp['Ef'] *1E02
 
     ###############################################################################
-    
 
-    # Write the results to Excel file
+    # Write the results for each component to Excel file
     # If f_loop is 1, then it should be a new book!
     newBook = False
     if f_loop == 1: newBook = True
-    exergy_to_excel(exergy=E,results=results,filename="results.xls",newBook=newBook,line=f_loop)
+    exergy_to_excel(components=components,exergytable=E,
+                     filename="results.xlsx",sheetname=f_out,newBook=newBook)
 
 
 
