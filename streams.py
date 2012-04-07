@@ -3,10 +3,8 @@
 ## Call: execfile("streams.py")
 
 import os,sys,subprocess,string
-from xlwt import Workbook                             # For writing to an excel file
-from xlrd import open_workbook                        # For reading an existing workbook
-from xlutils.copy import copy                         # For writing to an existing excel file
 from collections import OrderedDict
+import openpyxl as xl                 # For writing/reading excel files
 
 ## !!! THE STREAM WITH THE REFERENCE PRESSURE AND TEMPERATURE IS STREAM NUMBER 1 !!! ##
   
@@ -327,62 +325,112 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe"):
     # Add a first column that contains the stream number
     E = insert(E,0,streams[:,0],axis=1)
 
+    # Also add an empty first row, so that the indices
+    # match fontina's old code!
+    E = insert(E,0,E[0,:]*0.0,axis=0)
+
     print 'Checking GATEX output:'
     set_printoptions(precision=3,linewidth=150)
     print "Exergy table ="
     print "Columns: stream num., % m [kg/s], T [K], p[bar], H [MW], S [kW/K], EPH [MW], ECH [MW], E [MW]"
     print E      
     #---------------------------------------------------------------------##
-
+    
     # Done, return the table of exergies
     # Dimensions: n_streams X n_vars
     return E
 
-def myWorkbook(filename):
+
+def exergy_to_excel(components,exergytable,filename="results.xlsx",sheetname='Results',newBook=True):
     '''
-    To open a writable copy of an excel file.
-    First open a read-only copy of the file and
-    then copy to a writable version
-    '''
-
-    rb = open_workbook(filename,formatting_info=True)
-    wb = copy(rb) #a writable copy (I can't read values out of this, only write to it)
-
-    # Return the writable workbook.
-    return(wb)
-
-def exergy_to_excel(exergy,results,filename="results.xls",newBook=True,line=1):
-    '''
-
+    Given the table of exergy results from GATEX, write them to
+    an excel sheet.
     '''
     
     ## First, make a new empty workbook object if needed
+    ## or load the existing workbook from the filename
     if newBook:
-        book = Workbook()
+        
+        # Generate a new workbook
+        book = xl.Workbook()
 
-        # Add a sheet called "Results" to the workbook
-        sheet1 = book.add_sheet('Results')    
+        # Get the first sheet and rename it with the right name.
+        sheet1 = book.get_active_sheet()    # Active sheet in new book is always the first one
+        sheet1.title = sheetname            # Make sure the first sheet has the right name
 
-    ## Or open the old one *using copy*
     else:
-        book = myWorkbook(filename)
-        sheet1 = book.get_sheet(0)   # Open the first sheet
+        
+        # Load the workbook from existing file
+        book = xl.load_workbook(filename)
+        
+        # Get all existing sheetnames
+        sheetnames = book.get_sheet_names()
+
+        # If sheetname already exists, load it.
+        # Otherwise, create a new sheet with the right name.
+        if sheetname in sheetnames:
+            sheet1 = book.get_sheet_by_name(sheetname)
+        else:
+            sheet1 = book.create_sheet()        # Create a new sheet
+            sheet1.title = sheetname            # Make sure the new sheet has the right name
     
-    # Get the list of variables we will be writing
-    headings = results.keys()
+    # Make sure the results are input as a list
+    # It should a list of individual components,
+    # so if results is a scalar, then it must be
+    # converted to a list containing one component
+    if isscalar(components): components = [components]
     
-    # Now loop over each variable and write it to the correct place
-    # along with the heading
-    # (If sheet existed, this will just overwrite the heading)
-    j = -1
-    for key, value in results.iteritems():
-        j = j + 1
-        sheet1.write(0,j,key)
-        sheet1.write(line,j,value)
+    ncomps = len(components)
+    
+    # Get headings from component 1
+    headings = array(components[0].keys())
+    nhead  = len(headings)
+    
+    # Write all headings to sheet (first row)
+    i = 1
+    for j in arange(0,nhead):
+        sheet1.cell(row=i,column=j).value = headings[j]
+    
+    # Loop over all components and write the row of variables
+    for component in components:
+        i = i + 1
+        
+        # Now loop over each variable and write it to the correct place
+        for key, value in component.iteritems():
+
+            # Which column for the current key?
+            j = where(headings == key)
+            if len(j)==1:
+                j = j[0]   # Convert j from array into integer
+                sheet1.cell(row=i,column=j).value = value
+    
+
+    ## Now also write the complete exergy table to the file ###############
+    
+    # First generate some table header information
+    #stream num., % m [kg/s], T [K], p[bar], H [MW], S [kW/K], EPH [MW], ECH [MW], E [MW]
+    names = ['stream','m [kg/s]','T [K]','p [bar]','H [MW]',
+             'S [kW/K]','EPH [MW]','ECH [MW]','E [MW]']
+    
+    # Write some information above the table location
+    offset_row = ncomps + 12
+    offset_col = 0
+    sheet1.cell(row=offset_row-3,column=offset_col).value = 'Exergy table'
+    sheet1.cell(row=offset_row-2,column=offset_col).value = 'First row is zeros - ignore'
+
+    ni = exergytable.shape[0]
+    nj = exergytable.shape[1]
+    
+    # Write the table heading line first (by column)
+    for j in arange(0,nj):
+        sheet1.cell(row=offset_row-1,column=offset_col+j).value = names[j]
+    
+    # Now loop over all table values and write to the sheet
+    for j in arange(0,nj):
+        for i in arange(0,ni):
+            sheet1.cell(row=offset_row+i,column=offset_col+j).value = exergytable[i,j]
 
     # Save the book to the actual excel file
-    book.save('results.xls')
+    book.save(filename)
 
     return
-
-
