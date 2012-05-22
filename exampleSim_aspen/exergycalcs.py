@@ -52,6 +52,7 @@ for f_in in filenames:
     # Generate an ouput filename and save exergy array
     f_out = 'exergies'+str(f_loop)+'.txt'
     f_out = f_in.replace(".m",".txt")
+    f_out = f_in.replace(".rep",".txt")
     savetxt(f_out,E,fmt="%10.5f")
 
     ### Calculate some interesting results ########################################
