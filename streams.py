@@ -262,7 +262,8 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe"):
     ref.write(str(n_streams))
     ref.write('. ;\nkelvin =\t')
     ref.write('0. ;')  
-    ref.close
+    ref.close()
+    print gatex_f1 + " is closed? " + str(ref.closed)
     print "Wrote file for GATEX: " + gatex_f1
 
     #----------------------------------------------------------------------#
@@ -294,6 +295,7 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe"):
     flows = streams2[:,inds]
     flows = flows.flatten()
     savetxt(gatex_f2,flows,fmt="%10.4f")
+    flows2 = loadtxt(gatex_f2)    # To ensure file is written (Windows hack!)!
     print "Wrote file for GATEX: " + gatex_f2
 
     # Now extract element composition data (with duplicate stream number!)
@@ -303,6 +305,7 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe"):
     elements = streams2[:,inds]
     elements = elements.flatten()
     savetxt(gatex_f3,elements,fmt="%10.4f")
+    elements2 = loadtxt(gatex_f3)    # To ensure file is written (Windows hack!)!
     print "Wrote file for GATEX: " + gatex_f3
 
     #---------------------------------------------------------------------##
@@ -312,10 +315,13 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe"):
     
     # Determine whether to use wine or not
     # (If on linux or mac, use wine)
-    uname = os.uname()    # Operating system info
-    call_prefix = ""
-    if ( uname[0] in ["Darwin"] ): call_prefix = "wine "
-
+    try:
+        uname = os.uname()    # Operating system info
+        call_prefix = ""
+        if ( uname[0] in ["Darwin"] ): call_prefix = "wine "
+    except:
+        call_prefix = ""
+    
     ## Now call gatex and cross fingers !!! 
     os.system((call_prefix+gatex_exec))
     

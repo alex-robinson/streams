@@ -13,7 +13,8 @@ from collections import OrderedDict
 # First, define the central script directory and 
 # location of gatex.exe and the streams.py functions
 # CHANGE THIS TO THE LOCATION ON YOUR COMPUTER:
-SCRIPTDIR = "/Users/robinson/Dropbox/zCalculators/streams.git/"
+##SCRIPTDIR = "/Users/robinson/Dropbox/zCalculators/streams.git/"
+SCRIPTDIR = "/Users/admin/Dropbox/z_Calculators/streams.git/"
 
 # Now define locations of gatex and streams.py
 GATEX     = os.path.join(SCRIPTDIR, "gatex_pc_if97_mj.exe")
