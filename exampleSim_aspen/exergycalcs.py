@@ -13,8 +13,8 @@ from collections import OrderedDict
 # First, define the central script directory and 
 # location of gatex.exe and the streams.py functions
 # CHANGE THIS TO THE LOCATION ON YOUR COMPUTER:
-##SCRIPTDIR = "/Users/robinson/Dropbox/zCalculators/streams.git/"
-SCRIPTDIR = "/Users/admin/Dropbox/z_Calculators/streams.git/"
+SCRIPTDIR = "/Users/robinson/Dropbox/zCalculators/streams.git/"
+##SCRIPTDIR = "/Users/Fontina/Dropbox/z_Calculators/streams.git/"
 
 # Now define locations of gatex and streams.py
 GATEX     = os.path.join(SCRIPTDIR, "gatex_pc_if97_mj.exe")
@@ -32,7 +32,7 @@ execfile(STREAMS)
 # Make a list of all simulation filenames that we will be 
 # calculating exergies for.
 #filenames =  [ 'CombinedRes'+str(f_loop)+'.m' for f_loop in range(1,6,1) ] 
-filenames = [ 'simu1.rep' ]
+filenames = [ 'h2_prod_exergy_v2.rep' ]
 
 ## Now perform calculations that we will save inside the workbook
 ## Loop over the filenames and output exergy tables
@@ -51,8 +51,9 @@ for f_in in filenames:
 
     # Generate an ouput filename and save exergy array
     f_out = 'exergies'+str(f_loop)+'.txt'
-    f_out = f_in.replace(".m",".txt")
-    f_out = f_in.replace(".rep",".txt")
+    f_out = f_in.rsplit(".",1)[0] + '.txt'
+    if f_out == f_in:
+        sys.exit("Error: output filename would overwrite input!")
     savetxt(f_out,E,fmt="%10.5f")
 
     ### Calculate some interesting results ########################################
@@ -95,7 +96,3 @@ for f_in in filenames:
     if f_loop == 1: newBook = True
     exergy_to_excel(components=components,exergytable=E,
                      filename="results.xlsx",sheetname=f_out,newBook=newBook)
-
-
-
-

@@ -81,7 +81,7 @@ def write_ebsilon(out,file_output):
 
     return 
 
-def load_aspen(fldr="files_aspen",file_in="simu1.rep",write_mfile=True):
+def load_aspen(fldr="./",file_in="simu1.rep",write_mfile=True):
     '''
     Given the aspen output file located at fldr/file_in,
     convert the format to the .m table for gatex at fldr/out 
@@ -97,80 +97,181 @@ def load_aspen(fldr="files_aspen",file_in="simu1.rep",write_mfile=True):
 
     # Load lines of input file
     lines = open(file_input,'r').readlines()
-
-    # STEP 1: Filter file to relevant stream information
-    # Need to process each 'stream section' of the file that
-    # starts with " STREAM SECTION "
-    # and ends with " ASPEN PLUS "
-    lines1 = []
-    in_stream = False
-
-    skipchars = [" FROM"," TO"," SUBSTREAM"," PHASE"," COMPONENTS"," TOTAL FLOW",
-                 " STATE"," ENTHALPY","ENTROPY","DENSITY"]
-    addchars = [" STREAM ID","   CO2 ","   WATER ","   N2 ","   O2 ","   H2 ",
-                "   CH4 ","   AR ","   KG/HR ", "   TEMP ","   PRES ","   VFRAC ",
-                "   KCAL/KG ","   CAL/GM-K "]
-    ncols = len(addchars)
     
+    # STEP 1: Filter just to all lines related to stream section
+
+    # Names of subsections
+    subsections = ["COMPONENTS: KMOL/HR","TOTAL FLOW:","STATE VARIABLES:"]
+    nss = len(subsections)
+    
+    # Line substrings to skip entirely
+    skipstrings = ["(CONTINUED)"]
+
+    in_stream      = False
+    in_subsection  = False
+    got_subsection = [False] * nss
+    skipnext       = False
+    sectstart      = False
+    
+    lines1 = []
+
     # Loop over the lines and add those inside of the 'stream section'
     # Modify some strings to make a proper table
     for line in lines:
         
-        if in_stream and " ASPEN PLUS " in line:
-            in_stream = False
+        # First strip extra whitespace
+        line = line.strip()
+        addthisline = False 
 
-        elif in_stream and any([substring in line for substring in addchars]):
-            line1 = line.strip()
-            line1 = line1.replace(" BAR ","     ")
-            line1 = line1.replace(" C ","   ")
-            line1 = line1.replace("MISSING","nan")
-            line1 = line1.replace("+","e")
-            line1 = line1.replace("-","e-")
-            line1 = line1.replace(" e-"," -")
-            line1 = line1.replace("GMe-","GM-")
-            line1 = line1.replace("STREAM ID","STREAM   ")
-            line1 = line1.replace("TEMP","T   ")
-            line1 = line1.replace("PRES","p   ")
-            line1 = line1.replace("VFRAC","x    ")
-            line1 = line1.replace("WATER","H20  ")
-            line1 = line1.replace("AR","Ar")
-            line1 = line1.replace("KG/HR","mdot ")          # Mass flow rate
-            line1 = line1.replace("KCAL/KG","H      ")      # Enthalpy
-            line1 = line1.replace("CAL/GM-K","SE      ")    # Entropy
-            lines1.append(line1)
-            
-        elif " STREAM SECTION " in line:
+        ## Skip blank and other unwanted lines
+        if line == "" or any([substring in line for substring in skipstrings]): continue 
+
+        ## Determine whether we are in the stream section
+        if line == "STREAM SECTION":
             in_stream = True
+            continue 
 
+        ## ... or not in the stream section anymore
+        if "ASPEN PLUS" in line:
+            in_stream = False
+            continue
+        
+        # How many subsections have we looped over so far?
+        ngss = sum(got_subsection)
+        
 
-    # Check that we have a multiple of ncols
-    print "ncols =",ncols," nlines=",len(lines1)
-    nrep = len(lines1)/ncols
-    print "If this is a whole number, data was properly read: " + str(float(len(lines1))/float(ncols))
+        ## Determine if we're not in a subsection we want anymore
+        if in_stream and in_subsection:
+            if ":" in line: in_subsection = False 
 
+        ## And determine if now we found a subsection we want
+        if in_stream and ngss < nss:
+            if line == subsections[ngss]:
+                in_subsection        = True 
+                got_subsection[ngss] = True
+                continue     # we don't actually want this line...
+        
+        ##
+        ## Now that we know where we are (in_stream, in_subsection),
+        ## Decide what to do with lines
+        ##
+
+        ## If we find a new stream heading, add this line to the list
+        if in_stream and not in_subsection:
+            
+            if sectstart and "STREAM ID" in line:
+
+                # Make sure previous stream set was not empty
+                if len(lines1) > 1:
+                    if "STREAM" in lines1[len(lines1)-1]: lines1.pop()
+                
+                addthisline = True 
+                sectstart = False
+            
+            # If the line only contains the character '-' it's a 
+            # section header...
+            if all([c in "-" for c in line]):
+                sectstart = True
+                got_subsection = [False] *nss  # reset subsections
+
+        ## ... Else if we're inside a subsection we want,
+        ## then we'll add this line to the list
+        elif in_stream and in_subsection: 
+            addthisline = True
+        
+        ## If we indeed found a line we want, then
+        ## modify the strings and add it to the list!
+        if addthisline:
+
+            # Make some handy string replacements here
+            line1 = line
+
+            if "STREAM" in line1:
+                line1 = line1.replace("STREAM ID","STREAM   ")
+            else:
+                line1 = line1.replace(" BAR ","     ")
+                line1 = line1.replace(" C ","   ")
+                line1 = line1.replace("MISSING","nan")
+                line1 = line1.replace("+","e")
+                line1 = line1.replace("-","e-")
+                line1 = line1.replace(" e-"," -")
+                line1 = line1.replace("GMe-","GM-")
+                
+                line1 = line1.replace("TEMP","T   ")
+                line1 = line1.replace("PRES","p   ")
+                line1 = line1.replace("VFRAC","x    ")
+                line1 = line1.replace("WATER","H20  ")
+                line1 = line1.replace("AR","Ar")
+                line1 = line1.replace("KG/HR","mdot ")          # Mass flow rate
+                line1 = line1.replace("KCAL/KG","H      ")      # Enthalpy
+                line1 = line1.replace("CAL/GM-K","SE      ")    # Entropy
+
+            # Now add this line to the subset of lines we want
+            lines1.append(line1)
+    
+    # Remove last line if it belongs to a spurious heading...
+    if "STREAM" in lines1[len(lines1)-1]:
+        lines1.pop()
+
+##########################
+    
+    # Split the lines into separate lists so that
+    # they can properly be merged into an array
+    tmplists = []
+    q = -1
+    for line in lines1:
+        if "STREAM" in line:
+            tmplists.append([])
+            q = q + 1
+        tmplists[q].append(line)
+    
+    # Check that all lists have the same length!!
+    print "If these are all the same number, then data was properly read:"
+    for q in arange(len(tmplists)):
+        print "Length of each page:",len(tmplists[q])
+    
+    # Save how man pages and how many columns (right now, rows)
+    # of data are on each page.
+    npages = len(tmplists)
+    ncols  = len(tmplists[0])
+    
     # Now, generate a new table, by pasting the multiples
     # on as additional columns. In this way, each column
     # represents one stream 
-    lines2 = lines1[0:ncols]
+    lines2 = tmplists[0]
+    for q in arange(1,npages):
+        for i in arange(0,ncols):
+            lines2[i] = lines2[i] + "  " + tmplists[q][i]
 
-    for n in arange(1,nrep):
-        for q in arange(0,ncols):
-            now = n*ncols + q
-            lines2[q] = lines2[q] + "  " + lines1[now]
+    # Now split the lines by white space
+    # Then loop through and remove columns 
+    # where the stream number is actually a string
+    tmp = [line.split() for line in lines2]
+    #headings = [val[0] for val in tmp]
+    
+    # Replace stream numbers that are strings with negative number
+    for i in arange(len(tmp[0])):
+        if not tmp[0][i] == "STREAM":
+            try:
+                check = float(tmp[0][i])
+            except:
+                tmp[0][i] = "-9999"
 
     # Split the lines by white space and convert list into
     # a numpy array. Transpose so that each row is one stream
-    table0 = asarray( [line.split() for line in lines2] )
+    table0 = asarray( tmp )
     table0 = transpose(table0)
 
     # Extract the headings of each column and remove them from the data part
     headings = table0[0,:]
-    inds = [ e == "STREAM" for e in table0[:,0] ]
+    #inds = [ e == "STREAM" for e in table0[:,0] ]
+    inds = [ e in ["STREAM","-9999"] for e in table0[:,0] ]
+    
     table1 = table0[logical_not(inds),:]
 
     # Convert the text table into a data array
     data = asarray( [[float(a) for a in row] for row in table1 ] )
-
+    
     # Get the shape of the data
     nstreams = data.shape[0]
     ncols    = data.shape[1]
@@ -193,22 +294,39 @@ def load_aspen(fldr="files_aspen",file_in="simu1.rep",write_mfile=True):
     out[:,outh=="mdot"] = out[:,outh=="mdot"] * (1.0/3600.0)   # kg/h => kg/s
     out[:,outh=="SE"] = out[:,outh=="SE"] * (1e3)         # CAL/GM-K => CAL/kg-K
 
-    # Now convert the composition values to fractions
+    # Now convert the output composition values to fractions
     elements = array(["Ar","CO2","CO","COS","H2O","CH4","H2","H2S","N2","O2","SO2"])
     inds = in1d(outh,elements)
 
     for s in arange(0,nstreams):
-        tot = sum( out[s,inds] )
-        if tot > 0.0: out[s,inds] = out[s,inds] / tot
-        #print sum(out[s,inds])  # check each row sums to 1!
 
-        # Also eliminate nan values (fortran program can't read them)
+        # First eliminate nan values (fortran program can't read them)
         out[s,isnan(out[s,:])] = 0.0
+        
+        # Now scale mass flows into fractions
+        tot = data[s,headings=="KMOL/HR"]
+        if tot > 0.0: out[s,inds] = out[s,inds] / tot
+        #print "tot, sum:",tot,sum(out[s,inds])  # check each row sums to 1!
     
     # Reorder the data by stream number
     ### Sort the list by row (using the first column to decide the order) ##
     order = out[:,0].argsort()
     out = out[order,:]
+    
+    # Check that stream numbers go up sequentially,
+    # if not, remove the remaining streams
+    nsdiff = diff(out[:,0])
+    inds = [not e == 1 for e in nsdiff]
+    
+    if any(inds):
+        print "ERROR:: load_aspen:: Stream numbering error. "
+        print "  Each stream number should increase sequentially by 1."
+        print "  The following stream numbers appear to be out of sequence:"
+        
+        for q in arange(len(out[:,0])-1):
+            if inds[q]: print "    Stream ",int(out[q+1,0])
+
+        #sys.exit("Stream numbers (see above).")
 
     ## FINAL STEP: if desired, also write the data to output file in ebsilon format
     if write_mfile: write_ebsilon(out,file_output)
