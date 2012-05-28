@@ -26,6 +26,10 @@ execfile(EXERGY)
 ref_file = SCRIPTDIR + "/" + "ReferenceTables.xlsx"
 refs = load_reference(ref_file)
 
+filename_in  = "ExampleSimulation.xlsx"
+sheetname    = "ExampleStreams1"
+sheetresults = "Examplestreams1_exergy"
+
 ########
 ## BELOW HERE, begin the
 ## individual calculations
@@ -34,12 +38,15 @@ refs = load_reference(ref_file)
 
 
 ## Test cases
-s1 = stream(id=1,T=298.15,p=20.0,mdot=1,composition=[('CH4',1)])
-s2 = stream(id=2,T=473.15,p=10.0,mdot=1,composition=[('O2',0.21),('N2',0.79)])
-s3 = stream(id=2,T=1929.15,p=10.0,mdot=1,composition=[('O2',0.064),('N2',0.738),('CO2',0.066),('H2O',0.132)])
+#s1 = stream(id=1,T=298.15,p=20.0,mdot=1,composition=[('CH4',1)])
+#s2 = stream(id=2,T=473.15,p=10.0,mdot=1,composition=[('O2',0.21),('N2',0.79)])
+#s3 = stream(id=2,T=1929.15,p=10.0,mdot=1,composition=[('O2',0.064),('N2',0.738),('CO2',0.066),('H2O',0.132)])
 
 
 ## Test loading a simulation from Excel
-sim1 = simulation(filename=ref_file,sheetname="ExampleStreams1")
+sim1 = simulation(filename=filename_in,sheetname=sheetname)
+
+## Write results to Excel
+sim1.write_excel(filename=filename_in,sheetname=sheetresults)
 
 

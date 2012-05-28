@@ -62,8 +62,15 @@ def load_reference(filename="ReferenceTables.xlsx"):
         else:
             break
 
-    print "The following substances are available:"
-    print ", ".join(refs.keys())
+    text = "=" * 80
+    text = text + "\nThe following substances are available for exergy calculations:\n"
+    for i,key in enumerate(refs.keys()):
+        text = text + key 
+        if not i+1 == len(refs.keys()): text = text + ", "
+        if mod(i+1,12) == 0: text = text + "\n"
+    text = text + "\n" + "=" * 80
+    
+    print text
 
     return refs
 
@@ -127,17 +134,20 @@ class substance:
     This class manages calculations for a given substance.
     '''
 
-    def __init__(self,name,T,p,mdot,x,T0=298.15,p0=1.013):
+    def __init__(self,id,name,T,p,mdot,x,T0=298.15,p0=1.013):
         
         # Define some constants
         R = 8.314       # kJ/kmol-K, ideal gas constant
         
+        # Make a string of the id,name for easy formatting
+        idstr = "{:4}".format(id)
+        namestr = "{:11}".format(name)
+
         # Make sure x is valid
         if x < 0 or x > 1:
             err = '''
-Error:: substance:: Molar fraction must be between 0 and 1!
-                    Stopping calculations.
-'''
+Stream {}: {}: Error: molar fraction x must be between 0 and 1!
+'''.format(idstr,namestr)
             sys.exit(err)
 
         # Generate the initial state of this substance in the stream
@@ -146,9 +156,8 @@ Error:: substance:: Molar fraction must be between 0 and 1!
         # Now check that we can actually model this substance
         if not name in refs.keys():
             err = '''
-Error:: substance:: Substance {} not found!
-                    Stopping calculations.
-'''.format(name)
+Stream {}: {}: Error: no reference values found for substance!
+'''.format(idstr,namestr)
             sys.exit(err)
         
         # Since we know the substance exists,
@@ -159,10 +168,10 @@ Error:: substance:: Substance {} not found!
         # Check to make sure we are using the same reference state (T0,p0)
         if not (T0 == ref['T0'] and p0 == ref['p0']):
             err = '''
-Error:: substance:: Reference state for stream is different than for substance: {}
-                    (T0,p0).stream    = ({:7.3f},{:7.3f})
-                    (T0,p0).substance = ({:7.3f},{:7.3f})
-'''.format(name,T0,p0,ref['T0'],ref['p0'])
+Stream {}: {}: Error: reference state is not the same as the reference state of the stream.
+                      Stream (T0,p0) = ({:7.3f},{:7.3f})
+                   Substance (T0,p0) = ({:7.3f},{:7.3f})
+'''.format(idstr,namestr,T0,p0,ref['T0'],ref['p0'])
             sys.exit(err)
 
         # Get a useful factor (ajr: what is this?)
@@ -184,7 +193,7 @@ Error:: substance:: Reference state for stream is different than for substance: 
             
             # Limit enthalpy errors
             if state['h'] > -5.0 and state['h'] < 0.0:
-                print "Warning: small negative enthalpy set to zero for substance: {}".format(name)
+                print "Stream {}: {}: Warning: small negative enthalpy set to zero.".format(idstr,namestr)
                 state['h'] = 0.0
 
 
@@ -213,21 +222,23 @@ Error:: substance:: Reference state for stream is different than for substance: 
 
 
         # Store the output
-        self.name  = name
-        self.state = state
-        self.ref   = ref
+        self.id      = id
+        self.idstr   = idstr
+        self.name    = name
+        self.namestr = namestr
+        self.state   = state
+        self.ref     = ref
 
         return
         
     def __str__(self):
         '''Output the substance object to the screen in a human readable way.'''
         
-        text = "Substance: " + self.name
-         
+        text = "\nStream {}: {}".format(self.idstr,self.namestr)
         for key,value in self.state.items():
             text = text + "\n {:<12} = {:>12.7n}".format(key,float(value))
         
-        text = text +  "\n====== reference values ======"
+        text = text +  "\nREFERENCE VALUES"
         for key,value in self.ref.items():
             text = text + "\n {:<12} = {:>12.7n}".format(key,float(value))
 
@@ -258,6 +269,9 @@ class stream:
         # Then extract the info as needed for this class.
         #############
         
+        # Make a string of the id for easy formatting
+        idstr = "{:4}".format(id)
+
         # First store the state
         state = OrderedDict(T=T,p=p,mdot=mdot,T0=T0,p0=p0)
 
@@ -265,7 +279,7 @@ class stream:
         ## one for the current stream state
         comp = OrderedDict()
         for name,x in composition:
-            comp[name] = substance(name,T=T,p=p,mdot=mdot,x=x,T0=T0,p0=p0)
+            comp[name] = substance(id,name,T=T,p=p,mdot=mdot,x=x,T0=T0,p0=p0)
         
         ## Determine what kind of stream we have (H2O or not, flue gas or not)
         isH2O = True 
@@ -278,9 +292,9 @@ class stream:
         ## Make sure that if a stream has H2O(l), it also has H2O(g) and vice-versa
         ## (This will facilitate calculations later involving liquid and gas)
         if 'H2O(l)' in comp.keys() and not 'H2O' in comp.keys():
-            comp['H2O'] = substance('H2O',T=T,p=p,mdot=mdot,x=0.0,T0=T0,p0=p0)
+            comp['H2O'] = substance(id,'H2O',T=T,p=p,mdot=mdot,x=0.0,T0=T0,p0=p0)
         if 'H2O' in comp.keys() and not 'H2O(l)' in comp.keys():
-            comp['H2O(l)'] = substance('H2O(l)',T=T,p=p,mdot=mdot,x=0.0,T0=T0,p0=p0)
+            comp['H2O(l)'] = substance(id,'H2O(l)',T=T,p=p,mdot=mdot,x=0.0,T0=T0,p0=p0)
         
         # Make a duplicate list of stream substances
         # that will be adjusted for calculating the standard (T0,p0) values
@@ -303,15 +317,17 @@ class stream:
                 x_new_l = max(x_new_l,0.0)
                 comp0['H2O(l)'].state['x'] = x_new_l
                 comp0['H2O'].state['x']    = x_new_g
-
-                print "(x_l,x_g).old = ({:5.3f},{:5.3f})".format(x_l,x_g)
-                print "(x_l,x_g).new = ({:5.3f},{:5.3f})".format(x_new_l,x_new_g)
                 
+                text = (
+"Stream {}: Check: x of H2O(l),H2O(g) = {:5.3f},{:5.3f} => {:5.3f},{:5.3f}".format(idstr,x_l,x_g,x_new_l,x_new_g) )
+
+                print text
+
             if not (comp0['H2O(l)'].state['x'] + comp0['H2O'].state['x'] 
                 ==  comp['H2O(l)'].state['x'] +  comp['H2O'].state['x']):
                 err = '''
-Error:: stream:: Corrected H2O molar fractions do not sum to original total!
-'''
+Stream {}: Error: corrected H2O molar fractions do not sum to original total!
+'''.format(idstr)
                 sys.exit(err)
         
         ## Calculate MW of the stream
@@ -360,6 +376,7 @@ Error:: stream:: Corrected H2O molar fractions do not sum to original total!
         ####
 
         self.id    = id
+        self.idstr = idstr
         self.state = state
         self.comp  = comp 
         self.comp0 = comp0
@@ -375,6 +392,9 @@ Error:: stream:: Corrected H2O molar fractions do not sum to original total!
         # Define some constants
         R = 8.314       # kJ/kmol-K, ideal gas constant
         
+        # Get idstr
+        idstr = self.idstr
+
         # Decide which chemical exergy value to use (Ahrends or Szargut)
         if exergy_type == "Ahrends":
             name_ch = 'e_ch_0a'
@@ -382,9 +402,9 @@ Error:: stream:: Corrected H2O molar fractions do not sum to original total!
             name_ch = 'e_ch_0b'
         else:
             err = '''
-Error:: substance:: Incorrect exergy type given: {}
+Stream {}: Error: Incorrect exergy type given: {}
                     Only "Ahrends" or "Szargut" are allowed.
-'''.format(exergy_type)
+'''.format(idstr,exergy_type)
             sys.exit(err)
 
 
@@ -399,7 +419,7 @@ Error:: substance:: Incorrect exergy type given: {}
         
         # Limit e_ph to postive values and/or give warnings
         if state['e_ph'] < -5.0:
-            print "Warning: negative physical exergy for stream {}".format(self.id)
+            print "Stream {}: Warning: negative physical exergy.".format(self.id)
         elif state['e_ph'] < 0.0:
             state['e_ph'] = 0.0
 
@@ -437,11 +457,10 @@ Error:: substance:: Incorrect exergy type given: {}
         ebs = 1e-5
         if not abs(state['E_tot']-E_tot_check) < ebs:
             err = '''
-                  Warning:: calc_exergy::
-                  Total exergy calculations do not match:
+Stream {}: Warning: total exergy calculations do not match!
                   E_ph + E_ch != e_tot_kg * mdot
                   {:10.3f} + {:10.3f} != {:10.3f} * {:10.3f}
-                  '''.format(state['E_ph'],state['E_ch'],state['e_tot_kg'],state['mdot']/1e3)
+'''.format(idstr,state['E_ph'],state['E_ch'],state['e_tot_kg'],state['mdot']/1e3)
             
 
             #sys.exit(err)
@@ -464,7 +483,7 @@ Error:: substance:: Incorrect exergy type given: {}
     def __str__(self):
         '''Output the stream object to the screen in a human readable way.'''
         
-        text = "Stream: {}".format(self.id)
+        text = "Stream: {}".format(idstr)
          
         for key,value in self.state.items():
             text = text + "\n {:<12} = {:>12.7n}".format(key,float(value))
@@ -484,7 +503,7 @@ class simulation(stream):
        The simulation data is held in stream classes.
     '''
     
-    def __init__(self,filename="../ReferenceTables.xlsx",sheetname="ExampleStreams1"):
+    def __init__(self,filename="ExampleSimulation.xlsx",sheetname="ExampleStreams1"):
         '''Initialize the simulation'''
         
         ## Check file extension to see which type of data to load
@@ -493,7 +512,7 @@ class simulation(stream):
 
         return 
     
-    def load_excel(self,filename="../ReferenceTables.xlsx",sheetname="ExampleStreams1"):
+    def load_excel(self,filename="ExampleSimulation.xlsx",sheetname="ExampleStreams1"):
         '''Load the simulation data from an excel sheet.'''
 
         # Load the workbook from existing file
@@ -516,7 +535,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
 
         streams = OrderedDict()
 
-        for j in arange(1,1000):
+        for j in arange(1,1000):    # Max 1000 streams!
             
             # First see if this row has a substance
             streamid = sheet1.cell(row=j,column=0).value
@@ -524,18 +543,18 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
             # If an element was actually found in this row,
             # load all the data and generate a new stream object
             if not streamid == None:
-                mdot      = sheet1.cell(row=j,column=7).value
-                T         = sheet1.cell(row=j,column=8).value
-                p         = sheet1.cell(row=j,column=9).value
-                
+                T         = sheet1.cell(row=j,column=1).value
+                p         = sheet1.cell(row=j,column=2).value
+                mdot      = sheet1.cell(row=j,column=3).value
+
                 # Now loop over substances
                 comp = []
-                for i in arange(0,200):
+                for i in arange(0,500):   # Max 500 substances!
                     
-                    name = sheet1.cell(row=0,column=11+i).value
+                    name = sheet1.cell(row=0,column=6+i).value
                     
                     if not name == None:
-                        x = sheet1.cell(row=j,column=11+i).value
+                        x = sheet1.cell(row=j,column=6+i).value
                         if x == None: x = 0
                         #print i,j,name,x
                         comp.append( (name,x) )
@@ -553,6 +572,77 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
 
         return streams
     
+    def write_excel(self,filename,sheetname):
+        '''Write simulation results to an excel file.'''
+        
+        # Check if file already exists
+        isFile = os.path.isfile(filename)
+
+        if isFile:
+            # Open existing workbook
+            book = xl.load_workbook(filename)
+            
+            # Check if our desired worksheet already exists
+            # and adjust sheetname as needed.
+            sheetnames = book.get_sheet_names()
+            if sheetname in sheetnames:
+                print "{} already exists in {}.".format(sheetname,filename)
+                choice = raw_input("Overwrite these results (y/n)? ")
+                if not choice in ["y","Y","yes","YES","Yes"]:
+                    sheetname = sheetname + "_new"
+
+            # If sheetname already exists, delete it so we can start fresh.
+            if sheetname in sheetnames:
+                sheet1 = book.get_sheet_by_name(sheetname)
+                book.remove_sheet(sheet1)
+            
+            # Now generate a fresh sheet with the right name
+            sheet1 = book.create_sheet()        # Create a new sheet
+            sheet1.title = sheetname            # Make sure the new sheet has the right name
+        
+        else:
+            # Generate a new workbook
+            book = xl.Workbook()
+            
+            # Get the first sheet and rename it with the right name.
+            sheet1 = book.get_active_sheet()    # Active sheet in new book is always the first one
+            sheet1.title = sheetname            # Make sure the first sheet has the right name
+
+        
+        ## Now we should have an open workbook
+        ## with an empty sheet
+        
+        ## Make a header
+        header = ["T","p","mdot","MW","h","s","e_ph","e_ch","e_ph_kg","e_ch_kg","e_tot_kg","E_ph","E_ch","E_tot"]
+        
+        # Define any column offset
+        offset = 1 
+        
+        sheet1.cell(row=0,column=0).value = "Stream"
+        for j,head in enumerate(header):
+            sheet1.cell(row=0,column=offset+j).value = head 
+
+        # Load streams locally
+        streams = self.streams
+        
+        # Loop over the streams and write each line of data to the file
+        for i,key in enumerate(streams.keys()):
+              
+              # Write the stream id
+              sheet1.cell(row=i+1,column=offset-1).value = key
+              
+              # Loop over each variable and
+              # Write the variable to the sheet
+              for j,vnm in enumerate(header):
+                  if vnm in streams[key].state.keys():
+                      val = streams[key].state[vnm]
+                      sheet1.cell(row=i+1,column=offset+j).value = val
+        
+        # Save the book to the actual excel file
+        book.save(filename)
+
+        return 
+
     def __str__(self):
         '''Print out the handy simulation.'''
         
