@@ -200,7 +200,7 @@ def load_aspen(fldr="./",file_in="simu1.rep",write_mfile=True):
                 line1 = line1.replace("TEMP","T   ")
                 line1 = line1.replace("PRES","p   ")
                 line1 = line1.replace("VFRAC","x    ")
-                line1 = line1.replace("WATER","H20  ")
+                line1 = line1.replace("WATER","H2O  ")
                 line1 = line1.replace("AR","Ar")
                 line1 = line1.replace("KG/HR","mdot ")          # Mass flow rate
                 line1 = line1.replace("KCAL/KG","H      ")      # Enthalpy
