@@ -54,3 +54,14 @@ sim1 = simulation(filename=filename_in,sheetname=sheetname,exergy_method="defaul
 sim1.write_excel(filename=filename_out,sheetname=sheetname)
 
 
+
+## Check stream 6
+# comp = sim1.streams['6'].comp0
+# tot = 0.0
+# print "{:>12} {:>10} {:>12} {:>12}".format("Substance","x","h_0","x*h_0")
+# for key,sub in comp.items():
+#     tmp = sub.state['x']*sub.ref['h_0']
+#     tot = tot + tmp
+#     print "{:>12} {:10.5g} {:12.5g} {:12.5g}".format(key,sub.state['x'],sub.ref['h_0'],tmp)
+# print "TOTAL = ",tot
+

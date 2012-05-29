@@ -655,7 +655,8 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         streams = self.streams
 
         # Generate a sheetname for the results
-        sheetnameresults = sheetname + "_exergy"
+        sheetname_results    = sheetname + "_exergy"
+        sheetname_substances = sheetname + "_sub"
 
         # Check if file already exists
         isFile = os.path.isfile(filename)
@@ -683,14 +684,24 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
             sheet1.title = sheetname            # Make sure the new sheet has the right name
             
             # If sheetname already exists, delete it so we can start fresh.
-            if sheetnameresults in sheetnames:
-                sheet2 = book.get_sheet_by_name(sheetnameresults)
+            if sheetname_results in sheetnames:
+                sheet2 = book.get_sheet_by_name(sheetname_results)
                 book.remove_sheet(sheet2)
             
             # Make a second fresh sheet for the results
             sheet2 = book.create_sheet()
-            sheet2.title = sheetnameresults
+            sheet2.title = sheetname_results
+            
+            # If sheetname already exists, delete it so we can start fresh.
+            if sheetname_substances in sheetnames:
+                sheet3 = book.get_sheet_by_name(sheetname_substances)
+                book.remove_sheet(sheet3)
+            
+            # Make a second fresh sheet for the results
+            sheet3 = book.create_sheet()
+            sheet3.title = sheetname_substances
 
+        
         else:
             # Generate a new workbook
             book = xl.Workbook()
@@ -714,7 +725,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         header2 = streams[key].comp.keys()
         header = header1 + header2
 
-        # Define any column offset
+        # Define the column offset for the headers
         offset  = 1 
         offset2 = 8
 
@@ -747,9 +758,9 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         ## Now write the results to sheet2
 
         ## Make a header
-        header = ["T","p","mdot","MW","h","s","e_ph","e_ch","e_ph_kg","e_ch_kg","e_tot_kg","E_ph","E_ch","E_tot"]
+        header = ["T","p","mdot","MW","h","s","h_0","s_0","e_ph","e_ch","e_ph_kg","e_ch_kg","e_tot_kg","E_ph","E_ch","E_tot"]
         
-        # Define any column offset
+        # Define the column offset for the header
         offset = 1 
         
         sheet2.cell(row=0,column=0).value = "Stream"
@@ -769,6 +780,67 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
                       val = streams[key].state[vnm]
                       sheet2.cell(row=i+1,column=offset+j).value = val
         
+        ## Now write the individual substance information in sheet3
+        
+        ## Make a header
+        header1 = ["T","p","mdot","x","h","s","cp"]
+        header2 = ["MW","T0","p0","e_ch_0a","e_ch_0b","cp_0","h_0","s_0","H+","S+","a","b","c","d"]
+        header3 = ["x_25","h_0_25","s_0_25"]
+
+        header  = header1 + header2 + header3
+
+        # Define the column offset for the header
+        offset  = 1 
+        offset2 = len(header1) + offset
+        offset3 = len(header1) + len(header2) + offset
+
+        # Start a row counter
+        row = 0 
+
+        # Loop over the streams and write each line of data to the file
+        for i,key0 in enumerate(streams.keys()):
+            
+            row = row + 1
+
+            # Write the header again (for each stream)
+            sheet3.cell(row=row,column=0).value = "Stream"
+            for j,head in enumerate(header):
+                sheet3.cell(row=row,column=offset+j).value = head 
+        
+                
+            # Get the current stream
+            stream = streams[key0]
+
+            ## Now loop over each substance in the stream
+            for j,key in enumerate(stream.comp):
+              
+              state  = stream.comp[key].state
+              ref    = stream.comp[key].ref
+              state0 = stream.comp0[key].state
+              ref0   = stream.comp0[key].ref
+
+              # Increment the row
+              row = row + 1
+              
+              # Write the stream id
+              sheet3.cell(row=row,column=offset-1).value = key0
+                
+              # Loop over each variable and
+              # Write the variable to the sheet
+              for j,vnm in enumerate(header1):
+                  val = state[vnm]
+                  sheet3.cell(row=row,column=offset+j).value = val
+              
+              # Loop over each variable and
+              # Write the variable to the sheet
+              for j,vnm in enumerate(header2):
+                  val = ref[vnm]
+                  sheet3.cell(row=row,column=offset2+j).value = val
+              
+              # Output last ones manually since header doesn't match var names
+              sheet3.cell(row=row,column=offset3+0).value = state0['x']
+              sheet3.cell(row=row,column=offset3+1).value = ref0['h_0']
+              sheet3.cell(row=row,column=offset3+2).value = ref0['s_0']
 
         ## Finally, save the book to the actual excel file
         book.save(filename)
@@ -1016,6 +1088,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         # Unit converters
         conv_T = 0.0
         if units_T == "C": conv_T = 273.15
+        conv_mdot = 1/3600.0
 
         ## Loop over each stream and load the data
         streams = OrderedDict()
@@ -1024,7 +1097,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
             # Get state variables and id
             streamid = int(row[ii1[0]])
             tot      = row[ii2[0]]
-            mdot     = row[ii2[1]]
+            mdot     = row[ii2[1]] * conv_mdot # KG/HR => KG/S
             T        = row[ii2[3]] + conv_T    # Must be in Kelvin
             p        = row[ii2[4]]
             vfrac    = row[ii2[5]]
