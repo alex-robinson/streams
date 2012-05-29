@@ -365,8 +365,11 @@ class stream:
             if not (comp0['H2O(l)'].state['x'] + comp0['H2O'].state['x'] 
                 ==  comp['H2O(l)'].state['x'] +  comp['H2O'].state['x']):
                 text = "Stream {}: Warning: corrected H2O molar fractions "\
-                       "do not sum to original total!".format(idstr)
+                       "do not sum to original total!"\
+                       " All H2O set to gas (x of H2O(l)=0).".format(idstr)
                 print text
+                comp0['H2O(l)'].state['x'] = 0.0
+                comp0['H2O'].state['x']    = x 
 
         ## Calculate enthalpy (h) and entropy (s) depending on type of stream
         if not isH2O:
@@ -548,7 +551,7 @@ class simulation:
     '''
     
     def __init__(self,filename="ExampleSimulation.xlsx",
-                 sheetname="ExampleStreams1",exergy_method=None):
+                 sheetname="ExampleStreams1",exergy_method=None,exergy_type="Ahrends"):
         '''Initialize the simulation'''
         
         ## Check file extension to see which type of data to load
@@ -574,7 +577,7 @@ class simulation:
         elif exergy_method == "default":
             
             for key,stream in self.streams.items():
-                stream.calc_exergy()
+                stream.calc_exergy(exergy_type=exergy_type)
 
 
 
@@ -648,7 +651,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         
         return streams
     
-    def write_excel(self,filename,sheetname,writeSim=True,writeResults=True):
+    def write_excel(self,filename,sheetname,writeSim=True,writeResults=True,writeSubs=True):
         '''Write simulation results to an excel file.'''
         
         # Load streams locally
@@ -788,9 +791,11 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         header3 = ["x_25","h_0_25","s_0_25"]
 
         header  = header1 + header2 + header3
+        
+        col_header = "99CCFFFF"
 
         # Define the column offset for the header
-        offset  = 1 
+        offset  = 2 
         offset2 = len(header1) + offset
         offset3 = len(header1) + len(header2) + offset
 
@@ -800,13 +805,17 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         # Loop over the streams and write each line of data to the file
         for i,key0 in enumerate(streams.keys()):
             
-            row = row + 1
+            row = row + 3
 
             # Write the header again (for each stream)
             sheet3.cell(row=row,column=0).value = "Stream"
+            sheet3.cell(row=row,column=1).value = "Substance"
             for j,head in enumerate(header):
                 sheet3.cell(row=row,column=offset+j).value = head 
-        
+            
+            # Cell background color
+# _cell.style.fill.fill_type = Fill.FILL_SOLID
+# _cell.style.fill.start_color.index = Color.DARKRED
                 
             # Get the current stream
             stream = streams[key0]
@@ -822,9 +831,10 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
               # Increment the row
               row = row + 1
               
-              # Write the stream id
-              sheet3.cell(row=row,column=offset-1).value = key0
-                
+              # Write the stream id and substance name
+              sheet3.cell(row=row,column=offset-2).value = key0
+              sheet3.cell(row=row,column=offset-1).value = key
+
               # Loop over each variable and
               # Write the variable to the sheet
               for j,vnm in enumerate(header1):

@@ -32,7 +32,7 @@ refs = load_reference(ref_file)
 
 filename_in   = "h2_prod_exergy_v4.rep"
 filename_out  = "AspenSimulation1.xlsx"
-sheetname     = "Sim1"
+sheetname     = "Sim2"
 
 ########
 ## BELOW HERE, begin the
@@ -48,7 +48,7 @@ sheetname     = "Sim1"
 
 
 ## Test loading a simulation and calculating exergies
-sim1 = simulation(filename=filename_in,sheetname=sheetname,exergy_method="default")
+sim1 = simulation(filename=filename_in,sheetname=sheetname,exergy_method="default",exergy_type="Szargut")
 
 ## Write results to Excel
 sim1.write_excel(filename=filename_out,sheetname=sheetname)
