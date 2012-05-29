@@ -14,7 +14,7 @@ from collections import OrderedDict
 # location of gatex.exe and the streams.py functions
 # CHANGE THIS TO THE LOCATION ON YOUR COMPUTER:
 SCRIPTDIR = "/Users/robinson/Dropbox/zCalculators/streams.git/"
-##SCRIPTDIR = "/Users/Fontina/Dropbox/z_Calculators/streams.git/"
+#SCRIPTDIR = "/Users/Fontina/Dropbox/z_Calculators/streams.git/"
 
 # Now define locations of gatex and streams.py
 GATEX     = os.path.join(SCRIPTDIR, "gatex_pc_if97_mj.exe")
@@ -32,7 +32,7 @@ execfile(STREAMS)
 # Make a list of all simulation filenames that we will be 
 # calculating exergies for.
 #filenames =  [ 'CombinedRes'+str(f_loop)+'.m' for f_loop in range(1,6,1) ] 
-filenames = [ 'h2_prod_exergy_v2.rep' ]
+filenames = [ 'h2_prod_exergy_v4.rep' ]
 
 ## Now perform calculations that we will save inside the workbook
 ## Loop over the filenames and output exergy tables

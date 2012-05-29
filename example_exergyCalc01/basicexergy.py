@@ -9,8 +9,8 @@ import openpyxl as xl                 # For writing/reading excel files
 # First, define the central script directory and 
 # location of gatex.exe and the streams.py functions
 # CHANGE THIS TO THE LOCATION ON YOUR COMPUTER:
-##SCRIPTDIR = "/Users/robinson/Dropbox/zCalculators/streams.git/"
-SCRIPTDIR = "/Users/Fontina/Dropbox/z_Calculators/streams.git/"
+SCRIPTDIR = "/Users/robinson/Dropbox/zCalculators/streams.git/"
+##SCRIPTDIR = "/Users/Fontina/Dropbox/z_Calculators/streams.git/"
 
 
 
@@ -26,9 +26,13 @@ execfile(EXERGY)
 ref_file = SCRIPTDIR + "/" + "ReferenceTables.xlsx"
 refs = load_reference(ref_file)
 
-filename_in  = "ExampleSimulation.xlsx"
-sheetname    = "ExampleStreams1"
-sheetresults = "Examplestreams1_exergy"
+# filename_in  = "ExampleSimulation.xlsx"
+# filename_out = filename_in
+# sheetname    = "ExampleStreams1"
+
+filename_in   = "h2_prod_exergy_v4.rep"
+filename_out  = "AspenSimulation1.xlsx"
+sheetname     = "Sim1"
 
 ########
 ## BELOW HERE, begin the
@@ -43,10 +47,10 @@ sheetresults = "Examplestreams1_exergy"
 #s3 = stream(id=2,T=1929.15,p=10.0,mdot=1,composition=[('O2',0.064),('N2',0.738),('CO2',0.066),('H2O',0.132)])
 
 
-## Test loading a simulation from Excel
-sim1 = simulation(filename=filename_in,sheetname=sheetname)
+## Test loading a simulation and calculating exergies
+sim1 = simulation(filename=filename_in,sheetname=sheetname,exergy_method="default")
 
 ## Write results to Excel
-sim1.write_excel(filename=filename_in,sheetname=sheetresults)
+sim1.write_excel(filename=filename_out,sheetname=sheetname)
 
 

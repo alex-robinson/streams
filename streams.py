@@ -267,6 +267,8 @@ def load_aspen(fldr="./",file_in="simu1.rep",write_mfile=True):
     #inds = [ e == "STREAM" for e in table0[:,0] ]
     inds = [ e in ["STREAM","-9999"] for e in table0[:,0] ]
     
+    print headings 
+    
     table1 = table0[logical_not(inds),:]
 
     # Convert the text table into a data array
