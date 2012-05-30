@@ -320,13 +320,6 @@ class stream:
         # if abs(1.0 - xtot) > 1e-5:
         #     print "Stream {}: Warning: total x not equal to 1!").format(idstr)
 
-        ## Determine what kind of stream we have (H2O or not, flue gas or not)
-        isH2O = True 
-        for key in comp.keys():
-            if not key in ['H2O(l)','H2O(g)']:
-                isH2O = False
-                break
-        
         ## Handling water ##
         ## Make sure that if a stream has H2O(l), it also has H2O(g) and vice-versa
         ## (This will facilitate calculations later involving liquid and gas)
@@ -335,6 +328,11 @@ class stream:
         if 'H2O' in comp.keys() and not 'H2O(l)' in comp.keys():
             comp['H2O(l)'] = substance(id,'H2O(l)',T=T,p=p,mdot=mdot,x=0.0,T0=T0,p0=p0)
         
+        ## Determine what kind of stream we have (H2O or not, flue gas or not)
+        isH2O = True 
+        if comp['H2O'].state['x'] + comp['H2O(l)'].state['x'] < 1.0: isH2O = False
+        #print "Stream {}: isH2O={}".format(idstr,isH2O)
+
         # Make a duplicate list of stream substances
         # that will be adjusted for calculating the standard (T0,p0) values
         comp0 = deepcopy(comp)
@@ -418,6 +416,7 @@ class stream:
 
         self.id    = id
         self.idstr = idstr
+        self.isH2O = isH2O
         self.state = state
         self.comp  = comp 
         self.comp0 = comp0
@@ -474,7 +473,8 @@ Stream {}: Error: Incorrect exergy type given: {}
         # 2. e_ch = e_ch_gas*x_tot_gas + e_ch_h2o(l)*x_tot_h2o(l)
         
         # Check for liquid water (at 25 C)
-        if 'H2O(l)' in comp0.keys() and comp0['H2O(l)'].state['x'] > 0.0:
+        if not self.isH2O and 'H2O(l)' in comp0.keys() \
+                   and comp0['H2O(l)'].state['x'] > 0.0:
             
             # Make a temporary copy of the composition at 25 C
             comptmp = deepcopy(comp0)
@@ -500,15 +500,22 @@ Stream {}: Error: Incorrect exergy type given: {}
                 if not key == "H2O(l)" and not sub.state['x'] == 0.0:
                     sub.state['x'] = sub.state['x']*xfac 
                     x_tot_tmp = x_tot_tmp + sub.state['x']
-
+                    
                     sum1 = sum1 + ( sub.ref[name_ch]*sub.state['x'] )
                     sum2 = sum2 + ( sub.state['x']*log(sub.state['x']) )
+
+                    #print "x {:12}: {}".format(key,sub.state['x'])
             
             e_ch_g = (sum1 + R*state['T0']*sum2) *x_tot_g           # kJ/kmol
+            
+            # print "x_tot     {}".format(x_tot)
+            # print "x_tot_g   {}".format(x_tot_g)
+            # print "x_tot_l   {}".format(x_tot_l)
+            # print "x_tot_tmp {}".format(x_tot_tmp)
 
             # But now make sure that the temporary x_tot_tmp is the same as the original!
             if abs(x_tot-x_tot_tmp) > 1e-3:
-                print "ERROR: x_tot_tmp not correct: {} != {}".format(x_tot_tmp,x_tot)
+                print "Stream {}: Error: x_tot_tmp not correct: {} != {}".format(idstr,x_tot_tmp,x_tot)
                 sys.exit()
             
             ## Also get the chemical exergy for liquid water
@@ -638,10 +645,10 @@ class simulation:
             phase = stream.state['phase']
 
             if x_H2O_tot == 1.0:            # H2O stream
-                
+
                 if stream.id in saturated_water: phase = [0,1,0]    
                 if stream.id in saturated_steam: phase = [1,0,0]
-
+                
             #elif stream.id in flue_gas:    # Flue gas stream
             else:      # For now, apply this to any other stream 
                 phase = [-1,0,0]
