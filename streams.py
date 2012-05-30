@@ -389,13 +389,25 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe"):
     #----------------------------------------------------------------------#
 
     #-- Separate streams depending on their type --------------------------#
-    ## AJR: Fontina, are you sure this works properly? Is this general?
-    sat_water = [0]                                               # Write the numbers of saturated water streams
-    sat_steam = [0]                                               # Write the numbers of saturated steam streams
-    for i in sat_water:
-        streams[i,4] = 0                                          # x=0 when it is saturated water
-    for i in sat_steam: 
-        streams[i,4] = 1                                          # x=1 when it is saturated vapor
+    for i in arange(0,n_streams):
+        if streams[i,10] == 1.0:            # H2O stream
+
+            if streams[i,4] > 0.001 and streams[i,4] < 0.999:
+                pass  # Take original phase value
+            elif streams[i,0] in [65.0]: # saturated_water: 
+                streams[i,4] = 0.0    
+            elif streams[i,0] in [53.0]: # saturated_steam: 
+                streams[i,4] = 1.0
+            else:
+                streams[i,4] = -1.0
+
+        #elif streams[i,0] in flue_gas:    # Flue gas stream
+        else:      # For now, apply this to any other stream 
+            streams[i,4] = -1.0
+
+    # Convert T to celcius
+    #streams[:,2] = streams[:,2] - 273.15
+
     #----------------------------------------------------------------------#
     
     # For gatex to read the file correctly, the

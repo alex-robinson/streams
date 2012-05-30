@@ -50,13 +50,23 @@ sheetname     = "Sim1_gatex"
 #        composition=[('N2',0.7507),('O2',0.1372),('CO2',0.0314),('H2O',0.0807)])
 # s4.calc_exergy(exergy_type="Ahrends")
 
+# s5 = stream(id='1',T=560.6371+273.15,p=124.0,mdot=65.2099,
+#        composition=[('H2O',1.0)])
+# sim5 = simulation(stream=s5,exergy_type="gatex")
+
+# s5.calc_exergy(exergy_type="Ahrends")
+# s5.calc_exergy_gatex(exergy_type="Ahrends")
+
+# sim0 = simulation(filename="ExampleSimulation.xlsx",sheetname="H2Ostreams",
+#                   exergy_method="gatex")
+
 # ## Test loading a simulation and calculating exergies
 sim1 = simulation(filename=filename_in,sheetname=sheetname,
                   exergy_method="gatex",exergy_type="Szargut",
                   saturated_water=['65'],saturated_steam=['55'])
 
 # ## Write results to Excel
-sim1.write_excel(filename=filename_out,sheetname=sheetname)
+# sim1.write_excel(filename=filename_out,sheetname=sheetname)
 
 
 

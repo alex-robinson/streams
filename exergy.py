@@ -243,8 +243,7 @@ Stream {}: {}: Error: reference state is not the same as the reference state of 
             state['cp'] = ( ref['a'] + ref['b']*y 
                           + ref['c'] * y**(-2) 
                           + ref['d'] * y**2 )
-
-
+        
         # Store the output
         self.id      = id
         self.idstr   = idstr
@@ -609,22 +608,26 @@ class simulation:
        The simulation data is held in stream classes.
     '''
     
-    def __init__(self,filename="ExampleSimulation.xlsx",sheetname="ExampleStreams1",
+    def __init__(self,stream=None,filename="ExampleSimulation.xlsx",sheetname="ExampleStreams1",
                  exergy_method=None,exergy_type="Ahrends",
                  saturated_water=['-9999'],saturated_steam=['-9999'],flue_gas=['-9999']):
         '''Initialize the simulation'''
         
-        ## Check file extension to see which type of data to load
-        ext = filename.rsplit(".",1)[1]
-        if ext == "xlsx":  # load excel
-            self.streams = self.load_excel(filename=filename,sheetname=sheetname)
-            newfilename = filename
-        elif ext == "rep": # load aspen
-            print filename
-            self.streams = self.load_aspen(filename=filename)
-            #newfilename = filename0.rsplit(".",1)[0] + ".xlsx"
+        if stream == None:
+            ## Check file extension to see which type of data to load
+            ext = filename.rsplit(".",1)[1]
+            if ext == "xlsx":  # load excel
+                self.streams = self.load_excel(filename=filename,sheetname=sheetname)
+                newfilename = filename
+            elif ext == "rep": # load aspen
+                print filename
+                self.streams = self.load_aspen(filename=filename)
+                #newfilename = filename0.rsplit(".",1)[0] + ".xlsx"
+            else:
+                pass # Incorrect format or unimplemented format
         else:
-            pass # Incorrect format or unimplemented format
+            self.streams = OrderedDict()
+            self.streams[stream.id] = stream 
 
         ## Now we have the streams object
         
@@ -643,12 +646,20 @@ class simulation:
             
             # Get the the current stream phase [g,l,s]
             phase = stream.state['phase']
+            
+            
 
             if x_H2O_tot == 1.0:            # H2O stream
 
-                if stream.id in saturated_water: phase = [0,1,0]    
-                if stream.id in saturated_steam: phase = [1,0,0]
-                
+                if phase[0] > 0.001 and phase[0] < 0.999:
+                    pass  # Take original phase value
+                elif stream.id in saturated_water: 
+                    phase = [0,1,0]    
+                elif stream.id in saturated_steam: 
+                    phase = [1,0,0]
+                else:
+                    phase = [-1,0,0]
+
             #elif stream.id in flue_gas:    # Flue gas stream
             else:      # For now, apply this to any other stream 
                 phase = [-1,0,0]
@@ -1209,7 +1220,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
             sfrac    = row[ii2[7]]
             
             # Check for reasonable temperature values.
-            print "Stream {}: T,p,mdot = {},{},{}".format(streamid,T-273.15,p,mdot)
+            print "Stream {}: T,p,mdot = {},{},{}".format(streamid,T,p,mdot)
 
             # Now loop over substances
             comp = []
@@ -1263,7 +1274,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
             
             out[j,0] = id 
             out[j,1] = stream.state['mdot']
-            out[j,2] = stream.state['T']
+            out[j,2] = stream.state['T'] #- 273.15
             out[j,3] = stream.state['p']
             out[j,4] = stream.state['phase'][0]    # vfrac is called 'x' in this table!
             out[j,5] = stream.state['s']           # Gatex doesn't actually use this apparently!
