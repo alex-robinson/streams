@@ -31,8 +31,8 @@ refs = load_reference(ref_file)
 # sheetname    = "ExampleStreams1"
 
 filename_in   = "h2_prod_exergy_v4.rep"
-filename_out  = "AspenSimulation1.xlsx"
-sheetname     = "Sim2"
+filename_out  = "AspenSimulation2.xlsx"
+sheetname     = "Sim1_gatex"
 
 ########
 ## BELOW HERE, begin the
@@ -46,12 +46,17 @@ sheetname     = "Sim2"
 #s2 = stream(id=2,T=473.15,p=10.0,mdot=1,composition=[('O2',0.21),('N2',0.79)])
 #s3 = stream(id=2,T=1929.15,p=10.0,mdot=1,composition=[('O2',0.064),('N2',0.738),('CO2',0.066),('H2O',0.132)])
 
+s4 = stream(id=1,T=1400.0,p=1.013,mdot=92.92,
+       composition=[('N2',0.7507),('O2',0.1372),('CO2',0.0314),('H2O',0.0807),('H2O(l)',0.01)])
+s4.calc_exergy(exergy_type="Szargut")
 
-## Test loading a simulation and calculating exergies
-sim1 = simulation(filename=filename_in,sheetname=sheetname,exergy_method="default",exergy_type="Szargut")
+# ## Test loading a simulation and calculating exergies
+# sim1 = simulation(filename=filename_in,sheetname=sheetname,
+#                   exergy_method="gatex",exergy_type="Szargut",
+#                   saturated_water=['65'],saturated_steam['55'])
 
-## Write results to Excel
-sim1.write_excel(filename=filename_out,sheetname=sheetname)
+# ## Write results to Excel
+# sim1.write_excel(filename=filename_out,sheetname=sheetname)
 
 
 

@@ -452,6 +452,7 @@ Stream {}: Error: Incorrect exergy type given: {}
         # Open variables locally
         state = self.state
         comp  = self.comp 
+        comp0 = self.comp0 
 
         ## PHYSICAL EXERGY
         # Physical specific exergy of stream  ###
@@ -467,14 +468,65 @@ Stream {}: Error: Incorrect exergy type given: {}
 
         ## CHEMICAL EXERGY
         # Chemical specific exergy of stream ###
-        sum1 = 0.0
-        sum2 = 0.0
-        for key,sub in comp.items():
-            if not sub.state['x'] == 0.0:
-                sum1 = sum1 + ( sub.ref[name_ch]*sub.state['x'] )
-                sum2 = sum2 + ( sub.state['x']*log(sub.state['x']) )
 
-        state['e_ch']    = sum1 + R*state['T0']*sum2           # kJ/kmol
+        # If liquid water is present, e_ch must be calculated in two steps.
+        # 1. Adjust the molar fractions to eliminate liquid water (so only gas phase is left)
+        # 2. e_ch = e_ch_gas*x_tot_gas + e_ch_h2o(l)*x_tot_h2o(l)
+        
+        # Check for liquid water (at 25 C)
+        if 'H2O(l)' in comp0.keys() and comp0['H2O(l)'].state['x'] > 0.0:
+            
+            # Make a temporary copy of the composition at 25 C
+            comptmp = deepcopy(comp0)
+
+            # Adjust molar fractions for liquid and gas calcs seperately
+            
+            # Get total molar fraction x_tot (should be 1, unless substances missing)
+            x_tot = 0.0
+            for key,sub in comp.items(): x_tot = x_tot + sub.state['x'] 
+            
+            # Determine the liquid and gas content
+            x_tot_l = comptmp['H2O(l)'].state['x']
+            x_tot_g = x_tot - x_tot_l
+            
+            # Get the scaling factor for the gases
+            xfac = x_tot / x_tot_g 
+            
+            ## Scale the x value and calculate the chemical exergy for gas
+            x_tot_tmp = 0.0
+            sum1 = 0.0
+            sum2 = 0.0
+            for key,sub in comptmp.items():
+                if not key == "H2O(l)" and not sub.state['x'] == 0.0:
+                    sub.state['x'] = sub.state['x']*xfac 
+                    x_tot_tmp = x_tot_tmp + sub.state['x']
+
+                    sum1 = sum1 + ( sub.ref[name_ch]*sub.state['x'] )
+                    sum2 = sum2 + ( sub.state['x']*log(sub.state['x']) )
+            
+            e_ch_g = (sum1 + R*state['T0']*sum2) *x_tot_g           # kJ/kmol
+
+            # But now make sure that the temporary x_tot_tmp is the same as the original!
+            if abs(x_tot-x_tot_tmp) > 1e-3:
+                print "ERROR: x_tot_tmp not correct: {} != {}".format(x_tot_tmp,x_tot)
+                sys.exit()
+            
+            ## Also get the chemical exergy for liquid water
+            e_ch_l = comptmp['H2O(l)'].ref[name_ch]*comptmp['H2O(l)'].state['x']
+
+            # Store total chemical exergy
+            state['e_ch'] = e_ch_g + e_ch_l
+        else:
+
+
+            sum1 = 0.0
+            sum2 = 0.0
+            for key,sub in comp.items():
+                if not sub.state['x'] == 0.0:
+                    sum1 = sum1 + ( sub.ref[name_ch]*sub.state['x'] )
+                    sum2 = sum2 + ( sub.state['x']*log(sub.state['x']) )
+
+            state['e_ch']    = sum1 + R*state['T0']*sum2           # kJ/kmol
         
         
         ## Convert exergies to per kg
@@ -511,7 +563,7 @@ Stream {}: Warning: total exergy calculations do not match!
         self.state = state 
 
         return
-    
+
     def __repr__(self):
         
         text = "Stream: {}".format(self.id)
@@ -527,7 +579,7 @@ Stream {}: Warning: total exergy calculations do not match!
     def __str__(self):
         '''Output the stream object to the screen in a human readable way.'''
         
-        text = "Stream: {}".format(idstr)
+        text = "Stream: {}".format(self.id)
          
         for key,value in self.state.items():
             if key == "phase":
@@ -550,8 +602,9 @@ class simulation:
        The simulation data is held in stream classes.
     '''
     
-    def __init__(self,filename="ExampleSimulation.xlsx",
-                 sheetname="ExampleStreams1",exergy_method=None,exergy_type="Ahrends"):
+    def __init__(self,filename="ExampleSimulation.xlsx",sheetname="ExampleStreams1",
+                 exergy_method=None,exergy_type="Ahrends",
+                 saturated_water=['-9999'],saturated_steam=['-9999'],flue_gas=['-9999']):
         '''Initialize the simulation'''
         
         ## Check file extension to see which type of data to load
@@ -567,13 +620,43 @@ class simulation:
             pass # Incorrect format or unimplemented format
 
         ## Now we have the streams object
-
-        # Output some information about the streams
         
+        
+        # Adjust those streams that are 'saturated'
+        # AJR: NOT READY YET!
+        # saturated_water = [ '1', '2', '3' ]      # Stream numbers of saturated water
+        # saturated_steam = [ '4', '5', '6' ]      # Stream numbers of saturated steam
+        # flue_gas        = [ '7', '8' ]           # Stream numbers of flue gas
+        
+        ## NOTE: This should be inside of stream class!!!
+        for key,stream in self.streams.items():
+            
+            # Total molar fraction of H2O in stream
+            x_H2O_tot = stream.comp['H2O'].state['x'] + stream.comp['H2O(l)'].state['x']           
+            
+            # Get the the current stream phase [g,l,s]
+            phase = stream.state['phase']
+
+            if x_H2O_tot == 1.0:            # H2O stream
+                
+                if stream.id in saturated_water: phase = [0,1,0]    
+                if stream.id in saturated_steam: phase = [1,0,0]
+
+            #elif stream.id in flue_gas:    # Flue gas stream
+            else:      # For now, apply this to any other stream 
+                phase = [-1,0,0]
+
+            stream.state['phase'] = phase
+
+        # Output some summary information about the streams
+        # (ie print all warnings, etc here)
+        # TO DO!
 
         ## Calculate exergy now
         if exergy_method == "gatex":
-            pass
+            
+            self.streams = self.calc_exergy_gatex(gatex_exec="../gatex_pc_if97_mj.exe")
+        
         elif exergy_method == "default":
             
             for key,stream in self.streams.items():
@@ -715,8 +798,12 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
             
             # Make a second sheet for the results
             sheet2 = book.create_sheet()
-            sheet2.title = sheetnameresults
-        
+            sheet2.title = sheetname_results
+            
+            # Make a third sheet for the substances
+            sheet3 = book.create_sheet()
+            sheet3.title = sheetname_results
+
         ## Now we should have an open workbook
         ## with one or two empty sheets
         
@@ -1136,48 +1223,55 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
 
         return streams
     
-    def sim_to_gatex():
+    def sim_to_gatex(self):
         '''Translate a simulation object into an array readable by GATEX.'''
 
         ## CODE below to output in format for GATEX!!
         ## ajr: need to modify this so that we generate it from the streams object, not the data table.
         
+        # Define local variable for streams
+        streams = self.streams
+
         # Get the shape of the data
-        nstreams = data.shape[0]
-        ncols    = data.shape[1]
+        nstreams = len(streams)
         
         # Make the output array and headings we want for each column
-        outh = array(["STREAM","mdot","T","p","x","SE","Ar","CO2","CO","COS","H2O","XX","CH4","H2","H2S","N2","O2","SO2","H"])
-        ncolsx = len(outh) 
-        out = zeros((nstreams,ncolsx))
-
-        # Populate a new array that is exactly the size and shape we need
-        # by matching the columns of input data with the right columns in the output arra
-        for j in arange(0,ncols):
-            h0 = headings[j]
-            
-            if h0 in outh:
-                #print "Writing " + h0 + " to column " + str(j)
-                out[:,outh==h0] = data[:,headings==h0]
-
-        ## Make unit conversions
-        out[:,outh=="mdot"] = out[:,outh=="mdot"] * (1.0/3600.0)   # kg/h => kg/s
-        out[:,outh=="SE"] = out[:,outh=="SE"] * (1e3)         # CAL/GM-K => CAL/kg-K
-
-        # Now convert the output composition values to fractions
-        elements = array(["Ar","CO2","CO","COS","H2O","CH4","H2","H2S","N2","O2","SO2"])
-        inds = in1d(outh,elements)
-
-        for s in arange(0,nstreams):
-
-            # First eliminate nan values (fortran program can't read them)
-            out[s,isnan(out[s,:])] = 0.0
-            
-            # Now scale mass flows into fractions
-            tot = data[s,headings=="KMOL/HR"]
-            if tot > 0.0: out[s,inds] = out[s,inds] / tot
-            #print "tot, sum:",tot,sum(out[s,inds])  # check each row sums to 1!
+        # Note: here the heading 'x' stands for vfrac:vapor fraction; 'SE' stands for entropy
+        header = array(["STREAM","mdot","T","p","x","SE","Ar","CO2","CO","COS","H2O","XX","CH4","H2","H2S","N2","O2","SO2","H"])
+        ncols = len(header) 
+        out = zeros((nstreams,ncols))
         
+        # Loop over each stream (go row by row)
+        for j,key in enumerate(streams.keys()):
+            
+            # Get local variable for current stream
+            stream = streams[key]
+
+            try:
+                id = float(key)
+            except:
+                id = 1000+randint(1)
+                print "Stream {}: Warning: generated random number for "\
+                      "stream number to send to GATEX: {}".format(key,id)
+            
+            out[j,0] = id 
+            out[j,1] = stream.state['mdot']
+            out[j,2] = stream.state['T']
+            out[j,3] = stream.state['p']
+            out[j,4] = stream.state['phase'][0]    # vfrac is called 'x' in this table!
+            out[j,5] = stream.state['s']           # Gatex doesn't actually use this apparently!
+            
+            # Now loop over substances in header
+            # and insert the molar fraction into the table as necessary
+            substances = stream.comp.keys()
+            ioffset = 6
+            for i,head in enumerate(header[ioffset:]):
+                if head in substances:
+                    out[j,ioffset+i] = stream.comp[head].state['x']
+        
+        ## Eliminate nan's from the table, GATEX cannot read them
+        out[isnan(out)] = 0.0
+
         # Reorder the data by stream number
         ### Sort the list by row (using the first column to decide the order) ##
         order = out[:,0].argsort()
@@ -1190,7 +1284,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         
         if any(inds):
             err ='''
-ERROR:: load_aspen:: Stream numbering error. "
+ERROR:: sim_to_gatex:: Stream numbering error. "
   Each stream number should increase sequentially by 1."
   The following stream numbers appear to be out of sequence:"
 '''
@@ -1200,11 +1294,149 @@ ERROR:: load_aspen:: Stream numbering error. "
             #sys.exit("Stream numbers (see above).")
 
         ## FINAL STEP: if desired, also write the data to output file in ebsilon format
-        if write_mfile: write_ebsilon(out,file_output)
+        #if write_mfile: write_ebsilon(out,file_output)
         
         # Return the array of stream data in ebsilon format
         return out 
 
+    def calc_exergy_gatex(self,fldr="./",gatex_exec="../gatex_pc_if97_mj.exe"):
+        '''
+        Use this subroutine to calculate exergy from a set of stream data (array)
+        using GATEX.
+
+        == INPUT ==
+        streams : numpy array of dimensions n_streams X n_variables
+        fldr    : folder containing gatex program and 
+                  where input and output data are stored
+                  (for now must be the current working directory, since gatex.exe looks there)
+        
+        == OUTPUT ==
+        E       : table of exergy calculations obtained from GATEX 
+
+        '''
+        
+        # First generate an array of stream info for GATEX
+        data = self.sim_to_gatex()
+
+        print '======================'
+        print "Generating GATEX input files"
+
+        # Define important gatex filenames
+        gatex_f1 = os.path.join(fldr,"gate.inp")
+        gatex_f2 = os.path.join(fldr,"flows.prn")
+        gatex_f3 = os.path.join(fldr,"composition.prn")
+
+        # To help figure things out, create a header
+        # that shows the variable of each column
+        head = array(["STREAM","mdot","T","p","x","SE","Ar","CO2","CO","COS","H2O","XX","CH4","H2","H2S","N2","O2","SO2","H"])
+
+        # How many streams and variables are we working with?
+        n_streams = len(data)
+        n_var     = len(head)
+
+        ### Create the gate.inp file with the reference values #################
+        ref = open(gatex_f1,'w',buffering=0)                        
+        t0 = float(data[0,2])
+        p0 = float(data[0,3])
+        ref.write('\n\n[system]\n\nt0 =\t')             
+        ref.write(str(t0))
+        ref.write(' ;\np0 =\t')
+        ref.write(str(p0))
+        ref.write(' ;\nnumber =\t')
+        ref.write(str(n_streams))
+        ref.write('. ;\nndiff =\t')
+        ref.write(str(n_streams))
+        ref.write('. ;\nkelvin =\t')
+        ref.write('0. ;')  
+        ref.close()
+        print gatex_f1 + " is closed? " + str(ref.closed)
+        print "Wrote file for GATEX: " + gatex_f1
+
+        #----------------------------------------------------------------------#
+
+        # For gatex to read the file correctly, the
+        # stream number should appear twice. Here we duplicate
+        # the first column (which is the stream number)
+        data2 = insert(data,1,data[:,0],axis=1)
+        head2    = insert(head,1,head[0])
+
+        #---------------------------------------------------------------------##
+
+        ## Create files for saving the different data parts ####################
+        
+        # Extract flow data from the stream array (with duplicate stream number!)
+        # Then flatten to one vector and output to the flows.prn file
+        flow_names = array(["STREAM","mdot","T","p","x"])
+        inds = in1d(head2,flow_names)
+        flows = data2[:,inds]
+        flows = flows.flatten()
+        savetxt(gatex_f2,flows,fmt="%10.4f")
+        flows2 = loadtxt(gatex_f2)    # To ensure file is written (Windows hack!)!
+        print "Wrote file for GATEX: " + gatex_f2
+
+        # Now extract element composition data (with duplicate stream number!)
+        # Then flatten to one vector and output to the composition.prn file
+        element_names = array(["STREAM","Ar","CO2","CO","COS","H2O","CH4","H2","H2S","N2","O2","SO2"])
+        inds = in1d(head2,element_names)
+        elements = data2[:,inds]
+        elements = elements.flatten()
+        savetxt(gatex_f3,elements,fmt="%10.4f")
+        elements2 = loadtxt(gatex_f3)    # To ensure file is written (Windows hack!)!
+        print "Wrote file for GATEX: " + gatex_f3
+
+        #---------------------------------------------------------------------##
+        
+        # Now call gatex #######################################################
+        print "Calling GATEX..."
+        
+        # Determine whether to use wine or not
+        # (If on linux or mac, use wine)
+        try:
+            uname = os.uname()    # Operating system info
+            call_prefix = ""
+            if ( uname[0] in ["Darwin"] ): call_prefix = "wine "
+        except:
+            call_prefix = ""
+        
+        ## Now call gatex and cross fingers !!! 
+        os.system((call_prefix+gatex_exec))
+        
+        # If it worked, load the exergies
+        E = loadtxt('exergies.m', skiprows = (37),comments = ']')
+        
+        # Add a first column that contains the stream number
+        E = insert(E,0,data[:,0],axis=1)
+
+        # # Also add an empty first row, so that the indices
+        # # match fontina's old code!
+        # E = insert(E,0,E[0,:]*0.0,axis=0)
+
+        print 'Checking GATEX output:'
+        set_printoptions(precision=3,linewidth=150)
+        print "Exergy table ="
+        print "Columns: stream num., mdot [kg/s], T [K], p[bar], H [MW], S [kW/K], EPH [MW], ECH [MW], E [MW]"
+        print E      
+        #---------------------------------------------------------------------##
+        
+        ## Store the output values back in our simulation object
+        streams = self.streams
+        keys = streams.keys()
+        for j,idnum in enumerate(E[:,0]):
+            idstr = str(int(idnum))
+            #print "idstr: ",idstr
+            if idstr in keys:
+                streams[idstr].state['h']     = E[j,4]
+                streams[idstr].state['s']     = E[j,5]
+                streams[idstr].state['E_ph']  = E[j,6]
+                streams[idstr].state['E_ch']  = E[j,7]
+                streams[idstr].state['E_tot'] = E[j,8]
+            
+        # Done
+
+        return streams
+    
+    
+    
     def __str__(self):
         '''Print out the handy simulation.'''
         
@@ -1215,5 +1447,6 @@ ERROR:: load_aspen:: Stream numbering error. "
 
 
         return text
-
+    
+    
 
