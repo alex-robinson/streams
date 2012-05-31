@@ -715,9 +715,9 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
             # If an element was actually found in this row,
             # load all the data and generate a new stream object
             if not streamid == None:
-                T         = sheet1.cell(row=j,column=1).value
-                p         = sheet1.cell(row=j,column=2).value
-                mdot      = sheet1.cell(row=j,column=3).value
+                mdot      = sheet1.cell(row=j,column=1).value
+                T         = sheet1.cell(row=j,column=2).value
+                p         = sheet1.cell(row=j,column=3).value
                 # MW is in column 4, but is calculated internally
                 vfrac     = sheet1.cell(row=j,column=5).value
                 lfrac     = sheet1.cell(row=j,column=6).value
@@ -828,7 +828,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         ## First write the simulation data to sheet1
         
         ## Make a header
-        header1 = ["T","p","mdot","MW","VFRAC","LFRAC","SFRAC"]
+        header1 = ["mdot","T","p","MW","VFRAC","LFRAC","SFRAC"]
         key = streams.keys()[0]
         header2 = streams[key].comp.keys()
         header = header1 + header2
@@ -848,9 +848,9 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
 
               # Write the stream id and state variables
               sheet1.cell(row=i+1,column=offset-1).value = key
+              sheet1.cell(row=i+1,column=offset+2).value = state['mdot']
               sheet1.cell(row=i+1,column=offset+0).value = state['T']
               sheet1.cell(row=i+1,column=offset+1).value = state['p']
-              sheet1.cell(row=i+1,column=offset+2).value = state['mdot']
               sheet1.cell(row=i+1,column=offset+3).value = state['MW']
               sheet1.cell(row=i+1,column=offset+4).value = state['phase'][0]
               sheet1.cell(row=i+1,column=offset+5).value = state['phase'][1]
@@ -866,7 +866,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         ## Now write the results to sheet2
 
         ## Make a header
-        header = ["T","p","mdot","MW","h","s","h_0","s_0","e_ph","e_ch","e_ph_kg","e_ch_kg","e_tot_kg","E_ph","E_ch","E_tot"]
+        header = ["mdot","T","p","h","s","h_0","s_0","e_ph","e_ch","e_ph_kg","e_ch_kg","e_tot_kg","E_ph","E_ch","E_tot"]
         
         # Define the column offset for the header
         offset = 1 
@@ -891,7 +891,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         ## Now write the individual substance information in sheet3
         
         ## Make a header
-        header1 = ["T","p","mdot","x","h","s","cp"]
+        header1 = ["mdot","T","p","x","h","s","cp"]
         header2 = ["MW","T0","p0","e_ch_0a","e_ch_0b","cp_0","h_0","s_0","H+","S+","a","b","c","d"]
         header3 = ["x_25","h_0_25","s_0_25"]
 
@@ -1204,7 +1204,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         conv_T = 0.0
         if units_T == "C": conv_T = 273.15
         conv_mdot = 1/3600.0
-
+        
         ## Loop over each stream and load the data
         streams = OrderedDict()
         for j,row in enumerate(data):
@@ -1220,7 +1220,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
             sfrac    = row[ii2[7]]
             
             # Check for reasonable temperature values.
-            print "Stream {}: T,p,mdot = {},{},{}".format(streamid,T,p,mdot)
+            #print "Stream {}: T,p,mdot = {},{},{}".format(streamid,T,p,mdot)
 
             # Now loop over substances
             comp = []
@@ -1274,7 +1274,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
             
             out[j,0] = id 
             out[j,1] = stream.state['mdot']
-            out[j,2] = stream.state['T'] #- 273.15
+            out[j,2] = stream.state['T']
             out[j,3] = stream.state['p']
             out[j,4] = stream.state['phase'][0]    # vfrac is called 'x' in this table!
             out[j,5] = stream.state['s']           # Gatex doesn't actually use this apparently!
@@ -1296,7 +1296,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         out = out[order,:]
         
         # Check that stream numbers go up sequentially,
-        # if not, remove the remaining streams
+        # if not, write a warning/error
         nsdiff = diff(out[:,0])
         inds = [not e == 1 for e in nsdiff]
         
@@ -1314,6 +1314,12 @@ ERROR:: sim_to_gatex:: Stream numbering error. "
         ## FINAL STEP: if desired, also write the data to output file in ebsilon format
         #if write_mfile: write_ebsilon(out,file_output)
         
+        # print 'Checking GATEX intput:'
+        # set_printoptions(precision=3,linewidth=150)
+        # print "Exergy table ="
+        # print "Columns: stream num., mdot [kg/s], T [K], p[bar]"
+        # print out[:,0:3]  
+
         # Return the array of stream data in ebsilon format
         return out 
 
@@ -1353,20 +1359,36 @@ ERROR:: sim_to_gatex:: Stream numbering error. "
         n_var     = len(head)
 
         ### Create the gate.inp file with the reference values #################
-        ref = open(gatex_f1,'w',buffering=0)                        
-        t0 = float(data[0,2])
-        p0 = float(data[0,3])
-        ref.write('\n\n[system]\n\nt0 =\t')             
-        ref.write(str(t0))
-        ref.write(' ;\np0 =\t')
-        ref.write(str(p0))
-        ref.write(' ;\nnumber =\t')
-        ref.write(str(n_streams))
-        ref.write('. ;\nndiff =\t')
-        ref.write(str(n_streams))
-        ref.write('. ;\nkelvin =\t')
-        ref.write('0. ;')  
+        text = '''
+
+[system]
+
+t0 = {t0:10.3f} ;
+p0 = {p0:10.3f} ;
+number = {ns:6d}. ;
+ndiff = {nd:6d}. ;
+kelvin = {K:4d}. ;
+
+'''.format(t0=data[0,2],p0=data[0,3],ns=n_streams,nd=n_streams,K=1)
+        # print text 
+
+        ref = open(gatex_f1,'w',buffering=0)   
+        ref.write(text)
         ref.close()
+
+        # t0 = float(data[0,2])
+        # p0 = float(data[0,3])
+        # ref.write('\n\n[system]\n\nt0 =\t')             
+        # ref.write(str(t0))
+        # ref.write(' ;\np0 =\t')
+        # ref.write(str(p0))
+        # ref.write(' ;\nnumber =\t')
+        # ref.write(str(n_streams))
+        # ref.write('. ;\nndiff =\t')
+        # ref.write(str(n_streams))
+        # ref.write('. ;\nkelvin =\t')
+        # ref.write('0. ;')  
+        # ref.close()
         print gatex_f1 + " is closed? " + str(ref.closed)
         print "Wrote file for GATEX: " + gatex_f1
 

@@ -405,9 +405,6 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe"):
         else:      # For now, apply this to any other stream 
             streams[i,4] = -1.0
 
-    # Convert T to celcius
-    #streams[:,2] = streams[:,2] - 273.15
-
     #----------------------------------------------------------------------#
     
     # For gatex to read the file correctly, the
