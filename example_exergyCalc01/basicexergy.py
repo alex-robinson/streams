@@ -30,9 +30,9 @@ refs = load_reference(ref_file)
 # filename_out = filename_in
 # sheetname    = "ExampleStreams1"
 
-filename_in   = "h2_prod_exergy_v5.rep"
+filename_in   = "h2_prod_exergy_v6.rep"
 filename_out  = "AspenSimulation.xlsx"
-sheetname     = "Sim1_gatex"
+sheetname     = "Sim1_ahrends"
 
 ########
 ## BELOW HERE, begin the
@@ -62,11 +62,11 @@ sheetname     = "Sim1_gatex"
 
 # ## Test loading a simulation and calculating exergies
 sim1 = simulation(filename=filename_in,sheetname=sheetname,
-                  exergy_method="gatex",exergy_type="Szargut",
+                  exergy_method="default",exergy_type="Ahrends",
                   saturated_water=['65'],saturated_steam=['55'])
 
 # ## Write results to Excel
-# sim1.write_excel(filename=filename_out,sheetname=sheetname)
+sim1.write_excel(filename=filename_out,sheetname=sheetname)
 
 
 

@@ -412,6 +412,15 @@ class stream:
             state['h_0'] = 0.0
             state['s_0'] = 0.0
         ####
+        
+        # Make an additional output of H in MW and S in MW/K
+        # H: kJ/kmol => MW; S: kJ/kmol/K => kW/K
+        # H = h * mdot / ( (MW*1e-3) *1e6 )
+        # S = s * mdot / ( (MW*1e-3) *1e3 )
+        if not state['MW'] == 0.0:
+            state['H'] = state['h']  * state['mdot'] / ((state['MW']*1e-3)*1e6)
+            state['S'] = state['s']  * state['mdot'] / ((state['MW']*1e-3)*1e3)
+
 
         self.id    = id
         self.idstr = idstr
@@ -536,6 +545,7 @@ Stream {}: Error: Incorrect exergy type given: {}
         
         
         ## Convert exergies to per kg
+        ## kJ/kmol => kJ/kg
         state['e_ph_kg'] = state['e_ph'] /state['MW']          # kJ/kg
         state['e_ch_kg'] = state['e_ch'] /state['MW']          # kJ/kg
         
@@ -820,7 +830,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
             
             # Make a third sheet for the substances
             sheet3 = book.create_sheet()
-            sheet3.title = sheetname_results
+            sheet3.title = sheetname_substances
 
         ## Now we should have an open workbook
         ## with one or two empty sheets
@@ -828,18 +838,24 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         ## First write the simulation data to sheet1
         
         ## Make a header
-        header1 = ["mdot","T","p","MW","VFRAC","LFRAC","SFRAC"]
+        header1 = ["mdot","T","p",  "MW",    "VFRAC","LFRAC","SFRAC"]
+        units1  = ["kg/s","K","bar","kg/mol","",     "",     ""     ]
+        
         key = streams.keys()[0]
         header2 = streams[key].comp.keys()
+        units2 = [""] * len(header2)
+
         header = header1 + header2
+        units = units1 + units2 
 
         # Define the column offset for the headers
         offset  = 1 
         offset2 = 8
 
-        sheet1.cell(row=0,column=0).value = "Stream"
+        sheet1.cell(row=1,column=0).value = "Stream"
         for j,head in enumerate(header):
-            sheet1.cell(row=0,column=offset+j).value = head 
+            sheet1.cell(row=1,column=offset+j).value = head 
+            sheet1.cell(row=0,column=offset+j).value = units[j] 
         
         # Loop over the streams and write each line of data to the file
         for i,key in enumerate(streams.keys()):
@@ -847,46 +863,48 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
               state = streams[key].state
 
               # Write the stream id and state variables
-              sheet1.cell(row=i+1,column=offset-1).value = key
-              sheet1.cell(row=i+1,column=offset+2).value = state['mdot']
-              sheet1.cell(row=i+1,column=offset+0).value = state['T']
-              sheet1.cell(row=i+1,column=offset+1).value = state['p']
-              sheet1.cell(row=i+1,column=offset+3).value = state['MW']
-              sheet1.cell(row=i+1,column=offset+4).value = state['phase'][0]
-              sheet1.cell(row=i+1,column=offset+5).value = state['phase'][1]
-              sheet1.cell(row=i+1,column=offset+6).value = state['phase'][2]
+              sheet1.cell(row=i+2,column=offset-1).value = key
+              sheet1.cell(row=i+2,column=offset+0).value = state['mdot']
+              sheet1.cell(row=i+2,column=offset+1).value = state['T']
+              sheet1.cell(row=i+2,column=offset+2).value = state['p']
+              sheet1.cell(row=i+2,column=offset+3).value = state['MW']
+              sheet1.cell(row=i+2,column=offset+4).value = state['phase'][0]
+              sheet1.cell(row=i+2,column=offset+5).value = state['phase'][1]
+              sheet1.cell(row=i+2,column=offset+6).value = state['phase'][2]
 
               # Loop over each variable and
               # Write the variable to the sheet
               for j,vnm in enumerate(header2):
                   if vnm in streams[key].comp.keys():
                       val = streams[key].comp[vnm]
-                      sheet1.cell(row=i+1,column=offset2+j).value = val.state['x']
+                      sheet1.cell(row=i+2,column=offset2+j).value = val.state['x']
 
         ## Now write the results to sheet2
 
         ## Make a header
-        header = ["mdot","T","p","h","s","h_0","s_0","e_ph","e_ch","e_ph_kg","e_ch_kg","e_tot_kg","E_ph","E_ch","E_tot"]
-        
+        #header = ["mdot","T","p","h","s","h_0","s_0","e_ph","e_ch","e_ph_kg","e_ch_kg","e_tot_kg","E_ph","E_ch","E_tot"]
+        header = ["mdot","T","p","H","S","E_ph","E_ch","E_tot","h_0","s_0","h","s","e_ph","e_ch","e_ph_kg","e_ch_kg","e_tot_kg"]
+        units  = ["kg/s","K","bar","MW","kW/K","MW","MW","MW","kJ/kmol","kJ/kmol/K","kJ/kmol","kJ/kmol/K","","","","",""]
         # Define the column offset for the header
         offset = 1 
         
-        sheet2.cell(row=0,column=0).value = "Stream"
+        sheet2.cell(row=1,column=0).value = "Stream"
         for j,head in enumerate(header):
-            sheet2.cell(row=0,column=offset+j).value = head 
-        
+            sheet2.cell(row=1,column=offset+j).value = head 
+            sheet2.cell(row=0,column=offset+j).value = units[j]
+
         # Loop over the streams and write each line of data to the file
         for i,key in enumerate(streams.keys()):
               
               # Write the stream id
-              sheet2.cell(row=i+1,column=offset-1).value = key
+              sheet2.cell(row=i+2,column=offset-1).value = key
               
               # Loop over each variable and
               # Write the variable to the sheet
               for j,vnm in enumerate(header):
                   if vnm in streams[key].state.keys():
                       val = streams[key].state[vnm]
-                      sheet2.cell(row=i+1,column=offset+j).value = val
+                      sheet2.cell(row=i+2,column=offset+j).value = val
         
         ## Now write the individual substance information in sheet3
         
@@ -905,7 +923,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         offset3 = len(header1) + len(header2) + offset
 
         # Start a row counter
-        row = 0 
+        row = 1 
 
         # Loop over the streams and write each line of data to the file
         for i,key0 in enumerate(streams.keys()):
@@ -1353,6 +1371,9 @@ ERROR:: sim_to_gatex:: Stream numbering error. "
         # To help figure things out, create a header
         # that shows the variable of each column
         head = array(["STREAM","mdot","T","p","x","SE","Ar","CO2","CO","COS","H2O","XX","CH4","H2","H2S","N2","O2","SO2","H"])
+        
+        # print "Temperatures:",data[:,2]
+        # sys.exit()
 
         # How many streams and variables are we working with?
         n_streams = len(data)
@@ -1375,20 +1396,6 @@ kelvin = {K:4d}. ;
         ref = open(gatex_f1,'w',buffering=0)   
         ref.write(text)
         ref.close()
-
-        # t0 = float(data[0,2])
-        # p0 = float(data[0,3])
-        # ref.write('\n\n[system]\n\nt0 =\t')             
-        # ref.write(str(t0))
-        # ref.write(' ;\np0 =\t')
-        # ref.write(str(p0))
-        # ref.write(' ;\nnumber =\t')
-        # ref.write(str(n_streams))
-        # ref.write('. ;\nndiff =\t')
-        # ref.write(str(n_streams))
-        # ref.write('. ;\nkelvin =\t')
-        # ref.write('0. ;')  
-        # ref.close()
         print gatex_f1 + " is closed? " + str(ref.closed)
         print "Wrote file for GATEX: " + gatex_f1
 
@@ -1465,8 +1472,8 @@ kelvin = {K:4d}. ;
             idstr = str(int(idnum))
             #print "idstr: ",idstr
             if idstr in keys:
-                streams[idstr].state['h']     = E[j,4]
-                streams[idstr].state['s']     = E[j,5]
+                streams[idstr].state['H']     = E[j,4]
+                streams[idstr].state['S']     = E[j,5]
                 streams[idstr].state['E_ph']  = E[j,6]
                 streams[idstr].state['E_ch']  = E[j,7]
                 streams[idstr].state['E_tot'] = E[j,8]
