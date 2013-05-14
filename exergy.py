@@ -306,6 +306,7 @@ class stream:
         comp = OrderedDict()
         for name,x in composition:
             comp[name] = substance(id,name,T=T,p=p,mdot=mdot,x=x,T0=T0,p0=p0)
+            print name + "\n"
         
         ## Calculate MW of the stream and 
         ## the total molar fraction (should sum to 1 unless substances are missing)
@@ -319,6 +320,11 @@ class stream:
         # if abs(1.0 - xtot) > 1e-5:
         #     print "Stream {}: Warning: total x not equal to 1!").format(idstr)
 
+        ## Hack from Matlab: if a stream does not contain N2 or CH4, then set
+        ## total weight fraction to water
+        if comp['N2'].state['x'] + comp['CH4'].state['x'] == 0:
+            comp['H2O'] = substance(id,'H2O',T=T,p=p,mdot=mdot,x=1.0,T0=T0,p0=p0)
+            
         ## Handling water ##
         ## Make sure that if a stream has H2O(l), it also has H2O(g) and vice-versa
         ## (This will facilitate calculations later involving liquid and gas)
@@ -444,14 +450,14 @@ class stream:
         idstr = self.idstr
 
         # Decide which chemical exergy value to use (Ahrends or Szargut)
-        if exergy_type == "Ahrends":
+        if exergy_type.lower() == "ahrends":
             name_ch = 'e_ch_0a'
-        elif exergy_type == "Szargut":
+        elif exergy_type.lower() == "szargut":
             name_ch = 'e_ch_0b'
         else:
             err = '''
 Stream {}: Error: Incorrect exergy type given: {}
-                    Only "Ahrends" or "Szargut" are allowed.
+                    Only "ahrends" or "szargut" are allowed.
 '''.format(idstr,exergy_type)
             sys.exit(err)
 
@@ -725,6 +731,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
             # If an element was actually found in this row,
             # load all the data and generate a new stream object
             if not streamid == None:
+                
                 mdot      = sheet1.cell(row=j,column=1).value
                 T         = sheet1.cell(row=j,column=2).value
                 p         = sheet1.cell(row=j,column=3).value
@@ -744,12 +751,15 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
                     name = sheet1.cell(row=0,column=8+i).value
                     
                     if not name == None:
+                        name = name.strip()
                         x = sheet1.cell(row=j,column=8+i).value
                         if x == None: x = 0
                         #print i,j,name,x
                         comp.append( (name,x) )
                     else:
                         break
+                
+                print "Loading stream {}".format(streamid)
 
                 # Now we have loaded the state variables and 
                 # the composition, so generate a stream object

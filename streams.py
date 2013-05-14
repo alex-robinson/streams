@@ -390,13 +390,20 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe"):
 
     #-- Separate streams depending on their type --------------------------#
     for i in arange(0,n_streams):
+
+        ## NEW (30.10.2012): when no N2 or CH4 present, then stream is H2O
+        if streams[i,12] + streams[i,15] < 0.0000001:
+            streams[i,10] = 1.0
+
+        ## END NEW ##
+        
         if streams[i,10] == 1.0:            # H2O stream
 
             if streams[i,4] > 0.001 and streams[i,4] < 0.999:
                 pass  # Take original phase value
-            elif streams[i,0] in [65.0]: # saturated_water: 
+            elif streams[i,0] in [45.0,21.0,22.0,23.0,34.0,37.0]: # saturated_water: 45, 21,22,23,34,37 
                 streams[i,4] = 0.0    
-            elif streams[i,0] in [53.0]: # saturated_steam: 
+            elif streams[i,0] in [32.0,33.0,36.0,26.0,40.0]: # saturated_steam: 32,33,36, 26,40,
                 streams[i,4] = 1.0
             else:
                 streams[i,4] = -1.0
@@ -423,7 +430,7 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe"):
     inds = in1d(head2,flow_names)
     flows = streams2[:,inds]
     flows = flows.flatten()
-    savetxt(gatex_f2,flows,fmt="%10.4f")
+    savetxt(gatex_f2,flows,fmt="%12.6f")
     flows2 = loadtxt(gatex_f2)    # To ensure file is written (Windows hack!)!
     print "Wrote file for GATEX: " + gatex_f2
 
@@ -433,7 +440,7 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe"):
     inds = in1d(head2,element_names)
     elements = streams2[:,inds]
     elements = elements.flatten()
-    savetxt(gatex_f3,elements,fmt="%10.4f")
+    savetxt(gatex_f3,elements,fmt="%12.6f")
     elements2 = loadtxt(gatex_f3)    # To ensure file is written (Windows hack!)!
     print "Wrote file for GATEX: " + gatex_f3
 
@@ -441,7 +448,7 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe"):
     
     # Now call gatex #######################################################
     print "Calling GATEX..."
-    
+
     # Determine whether to use wine or not
     # (If on linux or mac, use wine)
     try:
