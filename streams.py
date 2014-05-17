@@ -391,8 +391,8 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe"):
     #-- Separate streams depending on their type --------------------------#
     for i in arange(0,n_streams):
 
-        ## NEW (30.10.2012): when no N2 or CH4 present, then stream is H2O
-        if streams[i,12] + streams[i,15] < 0.0000001:
+        ## NEW (30.10.2012): when no N2, CH4 or H2 are present, then stream is H2O
+        if streams[i,12] + streams[i,15] + streams[i,13] < 0.0000001:
             streams[i,10] = 1.0
 
         ## END NEW ##
