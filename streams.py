@@ -336,7 +336,7 @@ def load_aspen(fldr="./",file_in="simu1.rep",write_mfile=True):
     # Return the array of stream data in ebsilon format
     return out 
 
-def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe"):
+def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe",sat_water=[-1.0],sat_steam=[-1.0]):
     '''
     Use this subroutine to calculate exergy from a set of stream data (array)
     using GATEX.
@@ -391,8 +391,8 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe"):
     #-- Separate streams depending on their type --------------------------#
     for i in arange(0,n_streams):
 
-        ## NEW (30.10.2012): when no N2, CH4 or H2 are present, then stream is H2O
-        if streams[i,12] + streams[i,15] + streams[i,13] < 0.0000001:
+        ## NEW (30.10.2012): when no CH4, H2, N2 or O2 are present, then stream is H2O
+        if streams[i,12] + streams[i,13] + streams[i,15] + streams[i,16] < 0.0000001:
             streams[i,10] = 1.0
 
         ## END NEW ##
@@ -401,9 +401,11 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe"):
 
             if streams[i,4] > 0.001 and streams[i,4] < 0.999:
                 pass  # Take original phase value
-            elif streams[i,0] in [45.0,21.0,22.0,23.0,34.0,37.0]: # saturated_water: 45, 21,22,23,34,37 
+            #elif streams[i,0] in [45.0,21.0,22.0,23.0,34.0,37.0]: # saturated_water: 45, 21,22,23,34,37 
+            elif streams[i,0] in sat_water: # saturated_water: 45, 21,22,23,34,37 
                 streams[i,4] = 0.0    
-            elif streams[i,0] in [32.0,33.0,36.0,26.0,40.0]: # saturated_steam: 32,33,36, 26,40,
+            #elif streams[i,0] in [32.0,33.0,36.0,26.0,40.0]: # saturated_steam: 32,33,36, 26,40,
+            elif streams[i,0] in sat_steam: # saturated_steam: 32,33,36, 26,40,
                 streams[i,4] = 1.0
             else:
                 streams[i,4] = -1.0
