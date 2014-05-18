@@ -456,7 +456,8 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe",sat_
     try:
         uname = os.uname()    # Operating system info
         call_prefix = ""
-        if ( uname[0] in ["Darwin"] ): call_prefix = "wine "
+        ###if ( uname[0] in ["Darwin"] ): call_prefix = "wine "
+        if ( uname[0] in ["Darwin"] ): call_prefix = "/opt/local/bin/wine "
     except:
         call_prefix = ""
     
@@ -531,8 +532,10 @@ def exergy_to_excel(components,exergytable,filename="results.xlsx",sheetname='Re
     nhead  = len(headings)
     
     # Write all headings to sheet (first row)
-    i = 1
-    for j in arange(0,nhead):
+    ###i = 1
+    i = 2
+    ###for j in arange(0,nhead):
+    for j in arange(1,nhead):
         sheet1.cell(row=i,column=j).value = headings[j]
     
     # Loop over all components and write the row of variables
@@ -545,8 +548,9 @@ def exergy_to_excel(components,exergytable,filename="results.xlsx",sheetname='Re
             # Which column for the current key?
             j = where(headings == key)
             if len(j)==1:
-                j = j[0]   # Convert j from array into integer
-                sheet1.cell(row=i,column=j).value = value
+                j = j[0][0]   # Convert j from array into integer
+                #print i, j 
+                sheet1.cell(row=i,column=j+1).value = value
     
 
     ## Now also write the complete exergy table to the file ###############
@@ -557,8 +561,10 @@ def exergy_to_excel(components,exergytable,filename="results.xlsx",sheetname='Re
              'S [kW/K]','EPH [MW]','ECH [MW]','E [MW]']
     
     # Write some information above the table location
-    offset_row = ncomps + 12
-    offset_col = 0
+    ###offset_row = ncomps + 12
+    ###offset_col = 0
+    offset_row = ncomps + 13
+    offset_col = 1
     sheet1.cell(row=offset_row-3,column=offset_col).value = 'Exergy table'
     sheet1.cell(row=offset_row-2,column=offset_col).value = 'First row is zeros - ignore'
 
@@ -566,7 +572,8 @@ def exergy_to_excel(components,exergytable,filename="results.xlsx",sheetname='Re
     nj = exergytable.shape[1]
     
     # Write the table heading line first (by column)
-    for j in arange(0,nj):
+    ###for j in arange(0,nj):
+    for j in arange(1,nj):
         sheet1.cell(row=offset_row-1,column=offset_col+j).value = names[j]
     
     # Now loop over all table values and write to the sheet
