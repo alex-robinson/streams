@@ -10,7 +10,7 @@ import openpyxl as xl                 # For writing/reading excel files
 # location of gatex.exe and the streams.py functions
 # CHANGE THIS TO THE LOCATION ON YOUR COMPUTER:
 SCRIPTDIR = "/Users/robinson/Dropbox/zCalculators/streams.git/"
-##SCRIPTDIR = "/Users/Fontina/Dropbox/z_Calculators/streams.git/"
+##SCRIPTDIR = "/Users/Fontina/streams/"
 
 
 
@@ -26,14 +26,15 @@ execfile(EXERGY)
 ref_file = SCRIPTDIR + "/" + "ReferenceTables.xlsx"
 refs = load_reference(ref_file)
 
-# filename_in  = "ExampleSimulation.xlsx"
-# filename_out = filename_in
-# sheetname    = "ExampleStreams1"
+filename_in  = "ExampleSimulation.xlsx"
+filename_out = filename_in
+sheetname    = "ExampleStreams1"
+sheetname_out = "gatex" 
 
-filename_in   = "h2_prod_exergy_v7.rep"
-filename_out  = "AspenSimulation_v7b.xlsx"
-sheetname     = "Streams"
-sheetname_out = "gatex"
+# filename_in   = "h2_prod_exergy_v7.rep"
+# filename_out  = "AspenSimulation_v7b.xlsx"
+# sheetname     = "Streams"
+# sheetname_out = "gatex"
 
 ########
 ## BELOW HERE, begin the
