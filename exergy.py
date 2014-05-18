@@ -35,10 +35,10 @@ def load_reference(filename="ReferenceTables.xlsx"):
     
     refs = OrderedDict()
 
-    for j in arange(2,1000):
+    for j in arange(3,1000):
         
         # First see if this row has a substance
-        nm = sheet1.cell(row=j,column=2).value
+        nm = sheet1.cell(row=j,column=3).value
 
         # If an element was actuall found in this row
         # store all the reference values in the OrderedDict!
@@ -723,22 +723,22 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
 
         streams = OrderedDict()
 
-        for j in arange(1,1000):    # Max 1000 streams!
+        for j in arange(2,1000):    # Max 1000 streams!
             
             # First see if this row has a substance
-            streamid = sheet1.cell(row=j,column=0).value
+            streamid = sheet1.cell(row=j,column=1).value
 
             # If an element was actually found in this row,
             # load all the data and generate a new stream object
             if not streamid == None:
                 
-                mdot      = sheet1.cell(row=j,column=1).value
-                T         = sheet1.cell(row=j,column=2).value
-                p         = sheet1.cell(row=j,column=3).value
+                mdot      = sheet1.cell(row=j,column=2).value
+                T         = sheet1.cell(row=j,column=3).value
+                p         = sheet1.cell(row=j,column=4).value
                 # MW is in column 4, but is calculated internally
-                vfrac     = sheet1.cell(row=j,column=5).value
-                lfrac     = sheet1.cell(row=j,column=6).value
-                sfrac     = sheet1.cell(row=j,column=7).value
+                vfrac     = sheet1.cell(row=j,column=6).value
+                lfrac     = sheet1.cell(row=j,column=7).value
+                sfrac     = sheet1.cell(row=j,column=8).value
                 
                 if vfrac == None: vfrac = 0.0
                 if lfrac == None: lfrac = 0.0
@@ -748,11 +748,11 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
                 comp = []
                 for i in arange(0,500):   # Max 500 substances!
                     
-                    name = sheet1.cell(row=0,column=8+i).value
+                    name = sheet1.cell(row=1,column=9+i).value
                     
                     if not name == None:
                         name = name.strip()
-                        x = sheet1.cell(row=j,column=8+i).value
+                        x = sheet1.cell(row=j,column=9+i).value
                         if x == None: x = 0
                         #print i,j,name,x
                         comp.append( (name,x) )
@@ -859,13 +859,13 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         units = units1 + units2 
 
         # Define the column offset for the headers
-        offset  = 1 
-        offset2 = 8
+        offset  = 2 
+        offset2 = 9
 
-        sheet1.cell(row=1,column=0).value = "Stream"
+        sheet1.cell(row=2,column=1).value = "Stream"
         for j,head in enumerate(header):
-            sheet1.cell(row=1,column=offset+j).value = head 
-            sheet1.cell(row=0,column=offset+j).value = units[j] 
+            sheet1.cell(row=2,column=offset+j).value = head 
+            sheet1.cell(row=1,column=offset+j).value = units[j] 
         
         # Loop over the streams and write each line of data to the file
         for i,key in enumerate(streams.keys()):
@@ -873,21 +873,21 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
               state = streams[key].state
 
               # Write the stream id and state variables
-              sheet1.cell(row=i+2,column=offset-1).value = key
-              sheet1.cell(row=i+2,column=offset+0).value = state['mdot']
-              sheet1.cell(row=i+2,column=offset+1).value = state['T']
-              sheet1.cell(row=i+2,column=offset+2).value = state['p']
-              sheet1.cell(row=i+2,column=offset+3).value = state['MW']
-              sheet1.cell(row=i+2,column=offset+4).value = state['phase'][0]
-              sheet1.cell(row=i+2,column=offset+5).value = state['phase'][1]
-              sheet1.cell(row=i+2,column=offset+6).value = state['phase'][2]
+              sheet1.cell(row=i+3,column=offset-1).value = key
+              sheet1.cell(row=i+3,column=offset+0).value = state['mdot']
+              sheet1.cell(row=i+3,column=offset+1).value = state['T']
+              sheet1.cell(row=i+3,column=offset+2).value = state['p']
+              sheet1.cell(row=i+3,column=offset+3).value = state['MW']
+              sheet1.cell(row=i+3,column=offset+4).value = state['phase'][0]
+              sheet1.cell(row=i+3,column=offset+5).value = state['phase'][1]
+              sheet1.cell(row=i+3,column=offset+6).value = state['phase'][2]
 
               # Loop over each variable and
               # Write the variable to the sheet
               for j,vnm in enumerate(header2):
                   if vnm in streams[key].comp.keys():
                       val = streams[key].comp[vnm]
-                      sheet1.cell(row=i+2,column=offset2+j).value = val.state['x']
+                      sheet1.cell(row=i+3,column=offset2+j).value = val.state['x']
 
         ## Now write the results to sheet2
 
@@ -898,23 +898,23 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         # Define the column offset for the header
         offset = 1 
         
-        sheet2.cell(row=1,column=0).value = "Stream"
+        sheet2.cell(row=2,column=1).value = "Stream"
         for j,head in enumerate(header):
-            sheet2.cell(row=1,column=offset+j).value = head 
-            sheet2.cell(row=0,column=offset+j).value = units[j]
+            sheet2.cell(row=2,column=offset+j).value = head 
+            sheet2.cell(row=1,column=offset+j).value = units[j]
 
         # Loop over the streams and write each line of data to the file
         for i,key in enumerate(streams.keys()):
               
               # Write the stream id
-              sheet2.cell(row=i+2,column=offset-1).value = key
+              sheet2.cell(row=i+3,column=offset-1).value = key
               
               # Loop over each variable and
               # Write the variable to the sheet
               for j,vnm in enumerate(header):
                   if vnm in streams[key].state.keys():
                       val = streams[key].state[vnm]
-                      sheet2.cell(row=i+2,column=offset+j).value = val
+                      sheet2.cell(row=i+3,column=offset+j).value = val
         
         ## Now write the individual substance information in sheet3
         
@@ -928,7 +928,7 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         col_header = "99CCFFFF"
 
         # Define the column offset for the header
-        offset  = 2 
+        offset  = 3 
         offset2 = len(header1) + offset
         offset3 = len(header1) + len(header2) + offset
 
@@ -938,11 +938,11 @@ Error:: load_excel:: Desired sheetname {} does not exist in the workbook {}.
         # Loop over the streams and write each line of data to the file
         for i,key0 in enumerate(streams.keys()):
             
-            row = row + 3
+            row = row + 4
 
             # Write the header again (for each stream)
-            sheet3.cell(row=row,column=0).value = "Stream"
-            sheet3.cell(row=row,column=1).value = "Substance"
+            sheet3.cell(row=row,column=1).value = "Stream"
+            sheet3.cell(row=row,column=2).value = "Substance"
             for j,head in enumerate(header):
                 sheet3.cell(row=row,column=offset+j).value = head 
             
