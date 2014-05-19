@@ -535,8 +535,8 @@ def exergy_to_excel(components,exergytable,filename="results.xlsx",sheetname='Re
     ###i = 1
     i = 2
     ###for j in arange(0,nhead):
-    for j in arange(1,nhead):
-        sheet1.cell(row=i,column=j).value = headings[j]
+    for j in arange(0,nhead):
+        sheet1.cell(row=i,column=j+1).value = headings[j]
     
     # Loop over all components and write the row of variables
     for component in components:
