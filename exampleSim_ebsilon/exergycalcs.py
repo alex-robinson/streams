@@ -13,15 +13,15 @@ from collections import OrderedDict
 # First, define the central script directory and 
 # location of gatex.exe and the streams.py functions
 # CHANGE THIS TO THE LOCATION ON YOUR COMPUTER:
-##SCRIPTDIR = "/Users/robinson/Dropbox/zCalculators/streams.git/"
-SCRIPTDIR = "D:/FONTINA/Dropbox/z_Calculators/streams.git/"
+SCRIPTDIR = "/Users/robinson/models/streams/"
+#SCRIPTDIR = "D:/FONTINA/Dropbox/z_Calculators/streams.git/"
+
+# And import the needed exergy calculating functions
+sys.path.insert(0, '/path/to/application/app/folder')
+from streams import * 
 
 # Now define locations of gatex and streams.py
 GATEX     = os.path.join(SCRIPTDIR, "gatex_pc_if97_mj.exe")
-STREAMS   = os.path.join(SCRIPTDIR, "streams.py")
-
-# And import the needed exergy calculating functions
-execfile(STREAMS)
 
 
 ########

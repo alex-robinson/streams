@@ -5,6 +5,8 @@
 import os,sys,subprocess,string
 from collections import OrderedDict
 import openpyxl as xl                 # For writing/reading excel files
+from numpy import * 
+import codecs 
 
 ## !!! THE STREAM WITH THE REFERENCE PRESSURE AND TEMPERATURE IS STREAM NUMBER 1 !!! ##
   
@@ -51,7 +53,7 @@ def load_ebsilon(fldr="./",file_in="CombinedRes1.m"):
     try:
         out = loadtxt(file_input, skiprows = (1),comments = ']')
     except IOError as e:
-        print('Unable to locate the file:', f_in, 'Ending Program.''\n', e)
+        print('Unable to locate the file:', file_input, 'Ending Program.''\n', e)
         input("\nPress any key to exit.")
         sys.exit()
     
@@ -369,7 +371,7 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe",sat_
     n_var     = len(head)
 
     ### Create the gate.inp file with the reference values #################
-    ref = open(gatex_f1,'w',buffering=0)                        
+    ref = open(gatex_f1,'w') #,buffering=0)                        
     t0 = float(streams[0,2])
     p0 = float(streams[0,3])
     ref.write('\n\n[system]\n\nt0 =\t')             
@@ -465,7 +467,9 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe",sat_
     os.system((call_prefix+gatex_exec))
     
     # If it worked, load the exergies
-    E = loadtxt('exergies.m', skiprows = (37),comments = ']')
+    with codecs.open('exergies.m', encoding = 'cp1252') as filenow:
+        E = loadtxt(filenow, skiprows = (37),comments = ']')
+    # E = loadtxt('exergies.m', skiprows = (37),comments = ']')
     
     # Add a first column that contains the stream number
     E = insert(E,0,streams[:,0],axis=1)
