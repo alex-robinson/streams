@@ -28,10 +28,10 @@ def load_streams(fldr="./",file_in="CombinedRes1.m",filetype=None):
     elif filetype == "aspen":
         streams = load_aspen(fldr,file_in)
     else:
-        print "Error: file type not recognized: " + filetype
+        print("Error: file type not recognized: " + filetype)
         streams = None
     
-    print "Stream data loaded from: " + os.path.join(fldr,file_in)
+    print("Stream data loaded from: " + os.path.join(fldr,file_in))
 
     return streams
 
@@ -77,7 +77,7 @@ def write_ebsilon(out,file_output):
         outf.write(line)
     outf.write("];\n\n")
     
-    print "Stream data written to: " + file_output
+    print("Stream data written to: " + file_output)
 
     return 
 
@@ -91,9 +91,9 @@ def load_aspen(fldr="./",file_in="simu1.rep",write_mfile=True):
     file_input   = fldr + "/" + file_in     
     file_output = file_input.replace(".rep",".m")
     
-    print "Aspen files"
-    print "In  :" + file_input
-    print "Out :" + file_output
+    print("Aspen files")
+    print("In  :" + file_input)
+    print("Out :" + file_output)
 
     # Load lines of input file
     lines = open(file_input,'r').readlines()
@@ -226,9 +226,9 @@ def load_aspen(fldr="./",file_in="simu1.rep",write_mfile=True):
         tmplists[q].append(line)
     
     # Check that all lists have the same length!!
-    print "If these are all the same number, then data was properly read:"
+    print("If these are all the same number, then data was properly read:")
     for q in arange(len(tmplists)):
-        print "Length of each page:",len(tmplists[q])
+        print("Length of each page:",len(tmplists[q]))
     
     # Save how man pages and how many columns (right now, rows)
     # of data are on each page.
@@ -267,7 +267,7 @@ def load_aspen(fldr="./",file_in="simu1.rep",write_mfile=True):
     #inds = [ e == "STREAM" for e in table0[:,0] ]
     inds = [ e in ["STREAM","-9999"] for e in table0[:,0] ]
     
-    print headings 
+    print(headings)
     
     table1 = table0[logical_not(inds),:]
 
@@ -289,7 +289,7 @@ def load_aspen(fldr="./",file_in="simu1.rep",write_mfile=True):
         h0 = headings[j]
         
         if h0 in outh:
-            #print "Writing " + h0 + " to column " + str(j)
+            #print("Writing " + h0 + " to column " + str(j))
             out[:,outh==h0] = data[:,headings==h0]
 
     ## Make unit conversions
@@ -308,7 +308,7 @@ def load_aspen(fldr="./",file_in="simu1.rep",write_mfile=True):
         # Now scale mass flows into fractions
         tot = data[s,headings=="KMOL/HR"]
         if tot > 0.0: out[s,inds] = out[s,inds] / tot
-        #print "tot, sum:",tot,sum(out[s,inds])  # check each row sums to 1!
+        #print("tot, sum:",tot,sum(out[s,inds]))  # check each row sums to 1!
     
     # Reorder the data by stream number
     ### Sort the list by row (using the first column to decide the order) ##
@@ -321,12 +321,12 @@ def load_aspen(fldr="./",file_in="simu1.rep",write_mfile=True):
     inds = [not e == 1 for e in nsdiff]
     
     if any(inds):
-        print "ERROR:: load_aspen:: Stream numbering error. "
-        print "  Each stream number should increase sequentially by 1."
-        print "  The following stream numbers appear to be out of sequence:"
+        print("ERROR:: load_aspen:: Stream numbering error. ")
+        print("  Each stream number should increase sequentially by 1.")
+        print("  The following stream numbers appear to be out of sequence:")
         
         for q in arange(len(out[:,0])-1):
-            if inds[q]: print "    Stream ",int(out[q+1,0])
+            if inds[q]: print("    Stream ",int(out[q+1,0]))
 
         #sys.exit("Stream numbers (see above).")
 
@@ -352,8 +352,8 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe",sat_
 
     '''
     
-    print '======================'
-    print "Generating GATEX input files"
+    print('======================')
+    print("Generating GATEX input files")
 
     # Define important gatex filenames
     gatex_f1 = os.path.join(fldr,"gate.inp")
@@ -383,8 +383,8 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe",sat_
     ref.write('. ;\nkelvin =\t')
     ref.write('0. ;')  
     ref.close()
-    print gatex_f1 + " is closed? " + str(ref.closed)
-    print "Wrote file for GATEX: " + gatex_f1
+    print(gatex_f1 + " is closed? " + str(ref.closed))
+    print("Wrote file for GATEX: " + gatex_f1)
 
     #----------------------------------------------------------------------#
 
@@ -434,7 +434,7 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe",sat_
     flows = flows.flatten()
     savetxt(gatex_f2,flows,fmt="%12.6f")
     flows2 = loadtxt(gatex_f2)    # To ensure file is written (Windows hack!)!
-    print "Wrote file for GATEX: " + gatex_f2
+    print("Wrote file for GATEX: " + gatex_f2)
 
     # Now extract element composition data (with duplicate stream number!)
     # Then flatten to one vector and output to the composition.prn file
@@ -444,12 +444,12 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe",sat_
     elements = elements.flatten()
     savetxt(gatex_f3,elements,fmt="%12.6f")
     elements2 = loadtxt(gatex_f3)    # To ensure file is written (Windows hack!)!
-    print "Wrote file for GATEX: " + gatex_f3
+    print("Wrote file for GATEX: " + gatex_f3)
 
     #---------------------------------------------------------------------##
     
     # Now call gatex #######################################################
-    print "Calling GATEX..."
+    print("Calling GATEX...")
 
     # Determine whether to use wine or not
     # (If on linux or mac, use wine)
@@ -474,11 +474,11 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe",sat_
     # match fontina's old code!
     E = insert(E,0,E[0,:]*0.0,axis=0)
 
-    print 'Checking GATEX output:'
+    print('Checking GATEX output:')
     set_printoptions(precision=3,linewidth=150)
-    print "Exergy table ="
-    print "Columns: stream num., % m [kg/s], T [K], p[bar], H [MW], S [kW/K], EPH [MW], ECH [MW], E [MW]"
-    print E      
+    print("Exergy table =")
+    print("Columns: stream num., % m [kg/s], T [K], p[bar], H [MW], S [kW/K], EPH [MW], ECH [MW], E [MW]")
+    print(E)    
     #---------------------------------------------------------------------##
     
     # Done, return the table of exergies
@@ -549,7 +549,7 @@ def exergy_to_excel(components,exergytable,filename="results.xlsx",sheetname='Re
             j = where(headings == key)
             if len(j)==1:
                 j = j[0][0]   # Convert j from array into integer
-                #print i, j 
+                #print(i, j)
                 sheet1.cell(row=i,column=j+1).value = value
     
 
