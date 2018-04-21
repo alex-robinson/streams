@@ -504,7 +504,7 @@ def exergy_to_excel(components,exergytable,filename="results.xlsx",sheetname='Re
         book = xl.Workbook()
 
         # Get the first sheet and rename it with the right name.
-        sheet1 = book.get_active_sheet()    # Active sheet in new book is always the first one
+        sheet1 = book.active    # Active sheet in new book is always the first one
         sheet1.title = sheetname            # Make sure the first sheet has the right name
 
     else:
@@ -513,7 +513,7 @@ def exergy_to_excel(components,exergytable,filename="results.xlsx",sheetname='Re
         book = xl.load_workbook(filename)
         
         # Get all existing sheetnames
-        sheetnames = book.get_sheet_names()
+        sheetnames = book.sheetnames
 
         # If sheetname already exists, load it.
         # Otherwise, create a new sheet with the right name.
@@ -532,7 +532,8 @@ def exergy_to_excel(components,exergytable,filename="results.xlsx",sheetname='Re
     ncomps = len(components)
     
     # Get headings from component 1
-    headings = array(components[0].keys())
+    #headings = array(components[0].keys())    # Python 2.7
+    headings = [*components[0]]    
     nhead  = len(headings)
     
     # Write all headings to sheet (first row)
@@ -547,12 +548,12 @@ def exergy_to_excel(components,exergytable,filename="results.xlsx",sheetname='Re
         i = i + 1
         
         # Now loop over each variable and write it to the correct place
-        for key, value in component.iteritems():
+        for key, value in component.items():
 
             # Which column for the current key?
-            j = where(headings == key)
-            if len(j)==1:
-                j = j[0][0]   # Convert j from array into integer
+            jj = where(headings == key) 
+            if len(jj[0]):
+                j = jj[0][0]   # Convert j from array into integer
                 #print(i, j)
                 sheet1.cell(row=i,column=j+1).value = value
     
