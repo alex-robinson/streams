@@ -467,9 +467,9 @@ def calc_exergy_gatex(streams,fldr="./",gatex_exec="./gatex_pc_if97_mj.exe",sat_
     os.system((call_prefix+gatex_exec))
     
     # If it worked, load the exergies
+    # E = loadtxt('exergies.m', skiprows = (37),comments = ']')    # Python2
     with codecs.open('exergies.m', encoding = 'cp1252') as filenow:
         E = loadtxt(filenow, skiprows = (37),comments = ']')
-    # E = loadtxt('exergies.m', skiprows = (37),comments = ']')
     
     # Add a first column that contains the stream number
     E = insert(E,0,streams[:,0],axis=1)
@@ -533,8 +533,8 @@ def exergy_to_excel(components,exergytable,filename="results.xlsx",sheetname='Re
     
     # Get headings from component 1
     #headings = array(components[0].keys())    # Python 2.7
-    headings = [*components[0]]    
-    nhead  = len(headings)
+    headings = array([*components[0]])  
+    nhead    = len(headings)
     
     # Write all headings to sheet (first row)
     ###i = 1
@@ -552,7 +552,8 @@ def exergy_to_excel(components,exergytable,filename="results.xlsx",sheetname='Re
 
             # Which column for the current key?
             jj = where(headings == key) 
-            if len(jj[0]):
+            #print(headings,"===", key) 
+            if len(jj):
                 j = jj[0][0]   # Convert j from array into integer
                 #print(i, j)
                 sheet1.cell(row=i,column=j+1).value = value
