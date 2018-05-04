@@ -16,6 +16,14 @@ simplistic streams.py implementation.
 After downloading the repository, the streams repository should be stored in a central
 path on the computer. This path is referred to as the `SCRIPTDIR`. 
 
+Installing Python
+=================
+
+Before running the script, you need to have Python3+ installed, along with various libraries
+including numpy, scipy and openpyxl. This is most easily accomplished by installing Python
+via the Anaconda package management system. 
+https://www.anaconda.com/download
+
 Using streams.py
 ================
 
@@ -27,11 +35,9 @@ simulation output filenames are correct (e.g., CombinedRes1.m), that the number 
 is properly defined (e.g., `n_streams = 33`) and that any specific component calculations
 make sense for this simulation. 
 
-Once exergycalcs.py has been updated, in the simulation output directory open ipython in pylab mode
-and execute the script:
+Once exergycalcs.py has been updated, in the simulation output directory run the script using python in pylab mode:
 
-    ipython --pylab 
-    execfile("exergycalcs.py")
+    python exergycalcs.py --pylab
   
 This should generate the exergy calculations in an output Excel file "Results.xlsx".
 
