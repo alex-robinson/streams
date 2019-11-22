@@ -6,21 +6,21 @@ import os,sys,subprocess,string
 from collections import OrderedDict
 import openpyxl as xl                 # For writing/reading excel files
 
-# First, define the central script directory and 
+#import exergy
+#import streams
+
+# First, define the central script directory and
 # location of gatex.exe and the streams.py functions
 # CHANGE THIS TO THE LOCATION ON YOUR COMPUTER:
-SCRIPTDIR = "/Users/robinson/Dropbox/zCalculators/streams.git/"
-##SCRIPTDIR = "/Users/Fontina/streams/"
-
-
+SCRIPTDIR = "/Users/robinson/models/streams/"
 
 # Now define locations of gatex and streams.py
 STREAMS   = os.path.join(SCRIPTDIR, "streams.py")
 EXERGY    = os.path.join(SCRIPTDIR, "exergy.py")
 
 # And import the needed exergy calculating functions
-execfile(STREAMS)
-execfile(EXERGY)
+#exec(open(STREAMS).read())
+exec(open(EXERGY).read())
 
 # Load reference substance values
 ref_file = SCRIPTDIR + "/" + "ReferenceTables.xlsx"
@@ -29,7 +29,7 @@ refs = load_reference(ref_file)
 filename_in  = "ExampleSimulation.xlsx"
 filename_out = filename_in
 sheetname    = "ExampleStreams1"
-sheetname_out = "gatex" 
+sheetname_out = "gatex"
 
 # filename_in   = "h2_prod_exergy_v7.rep"
 # filename_out  = "AspenSimulation_v7b.xlsx"
@@ -44,7 +44,10 @@ sheetname_out = "gatex"
 
 
 ## Test cases
-#s1 = stream(id=1,T=298.15,p=20.0,mdot=1,composition=[('CH4',1)])
+# s1 = stream(id=1,T=298.15,p=20.0,mdot=1,composition=[('CH4',1)])
+# s1.calc_exergy(exergy_type="Ahrends")
+# print(s1)
+
 #s2 = stream(id=2,T=473.15,p=10.0,mdot=1,composition=[('O2',0.21),('N2',0.79)])
 #s3 = stream(id=2,T=1929.15,p=10.0,mdot=1,composition=[('O2',0.064),('N2',0.738),('CO2',0.066),('H2O',0.132)])
 
@@ -62,12 +65,12 @@ sheetname_out = "gatex"
 # sim0 = simulation(filename="ExampleSimulation.xlsx",sheetname="H2Ostreams",
 #                   exergy_method="gatex")
 
-# ## Test loading a simulation and calculating exergies
+## Test loading a simulation and calculating exergies
 sim1 = simulation(filename=filename_in,sheetname=sheetname,
                   exergy_method="gatex",exergy_type="ahrends",
                   saturated_water=['65'],saturated_steam=['55'])
 
-# ## Write results to Excel
+## Write results to Excel
 sim1.write_excel(filename=filename_out,sheetname=sheetname_out)
 
 
@@ -81,4 +84,3 @@ sim1.write_excel(filename=filename_out,sheetname=sheetname_out)
 #     tot = tot + tmp
 #     print "{:>12} {:10.5g} {:12.5g} {:12.5g}".format(key,sub.state['x'],sub.ref['h_0'],tmp)
 # print "TOTAL = ",tot
-

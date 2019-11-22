@@ -2,8 +2,9 @@
 
 [system]
 
-t0 =	15.0 ;
-p0 =	1.013 ;
-number =	92. ;
-ndiff =	92. ;
-kelvin =	0. ;
+t0 =      1.013 ;
+p0 =      1.000 ;
+number =     35. ;
+ndiff =     35. ;
+kelvin =    1. ;
+

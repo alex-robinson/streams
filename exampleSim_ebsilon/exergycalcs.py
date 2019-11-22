@@ -31,10 +31,10 @@ GATEX     = os.path.join(SCRIPTDIR, "gatex_pc_if97_mj.exe")
 
 # Make a list of all simulation filenames that we will be 
 # calculating exergies for.
-filenames =  [ 'CombinedRes'+str(f_loop)+'.m' for f_loop in range(0,10,1) ] 
-##filenames = [ 'CombinedRes0.m' ]
+##filenames =  [ 'CombinedRes'+str(f_loop)+'.m' for f_loop in range(0,10,1) ] 
+filenames = [ 'CombinedRes0.m' ]
 
-n_streams = 52
+n_streams = 27
 
 ## Now perform calculations that we will save inside the workbook
 ## Loop over the filenames and output exergy tables
