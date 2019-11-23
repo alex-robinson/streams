@@ -1,10 +1,11 @@
 
 
-[system]
+    [system]
 
-t0 =      1.013 ;
-p0 =      1.000 ;
-number =     35. ;
-ndiff =     35. ;
-kelvin =    1. ;
+    t0 =     25.000 ;
+    p0 =      1.013 ;
+    number =      1. ;
+    ndiff =      1. ;
+    kelvin =    0. ;
 
+    
