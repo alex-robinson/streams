@@ -43,7 +43,7 @@ sheetname_out = "gatex"
 
 ## Test cases
 
-if False:
+if True:
     s1 = stream(id=1,T=298.15,p=1.013,mdot=1,composition=[('CH4',1)])
     s2 = stream(id=1,T=298.15,p=1.013,mdot=1,composition=[('CH4',1)])
 
@@ -53,27 +53,27 @@ if False:
     print(s1)
     print("\n ======= \n")
     print(s2)
+    
+if False:
 
-    sys.exit()
+    temps = arange(270,331)
+    eph1  = []
+    eph2  = []
 
-temps = arange(270,331)
-eph1  = []
-eph2  = []
+    for temp in temps:
 
-for temp in temps:
+        ## Test cases
+        s1 = stream(id=1,T=temp,p=1.013,mdot=1,composition=[('CH4',1.0)])
+        s2 = stream(id=2,T=temp,p=1.013,mdot=1,composition=[('CH4',1.0)])
 
-    ## Test cases
-    s1 = stream(id=1,T=temp,p=1.013,mdot=1,composition=[('CH4',1.0)])
-    s2 = stream(id=2,T=temp,p=1.013,mdot=1,composition=[('CH4',1.0)])
+        s1.calc_exergy(exergy_type="Ahrends")
+        s2.calc_exergy_gatex(gatex_exec="../gatex_pc_if97_mj.exe")
 
-    s1.calc_exergy(exergy_type="Ahrends")
-    s2.calc_exergy_gatex(gatex_exec="../gatex_pc_if97_mj.exe")
+        eph1.append(s1.state['E_ph'])
+        eph2.append(s2.state['E_ph'])
 
-    eph1.append(s1.state['E_ph'])
-    eph2.append(s2.state['E_ph'])
-
-for k,val in enumerate(temps):
-    print(val,eph1[k],eph2[k])
+    for k,val in enumerate(temps):
+        print(val,eph1[k],eph2[k])
 
 #s2 = stream(id=2,T=473.15,p=10.0,mdot=1,composition=[('O2',0.21),('N2',0.79)])
 #s3 = stream(id=2,T=1929.15,p=10.0,mdot=1,composition=[('O2',0.064),('N2',0.738),('CO2',0.066),('H2O',0.132)])

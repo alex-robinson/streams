@@ -612,11 +612,100 @@ Stream {}: Warning: total exergy calculations do not match!
         # Define stream state variables locally
         state = self.state
 
-        # Determine line in GATEX format
-        data = self.stream_to_gatex()
-        data[2] = data[2] - 273.15
-        # print(data)
-        # sys.exit()
+        # Save stream information to gatex input files (gate.inp,flows.prn,composition.prn)
+        data = self.stream_to_gatex_files(fldr)
+
+        # Now call gatex #######################################################
+        print("Calling GATEX: stream {:d}, T = {:6.1f}, P = {:6.3f}".format(self.id,state['T'],state['p']))
+
+        # Determine whether to use wine or not
+        # (If on linux or mac, use wine)
+        try:
+            uname = os.uname()    # Operating system info
+            call_prefix = ""
+            if ( uname[0] in ["Darwin"] ): call_prefix = "wine "
+        except:
+            call_prefix = ""
+
+        ## Now call gatex and cross fingers !!!
+        os.system((call_prefix+gatex_exec))
+
+
+        # If it worked, load the exergies
+        with open('exergies.m', 'rb') as f:
+            contents = f.readlines()[37:]
+
+            new = []
+            for line in contents:
+                a = unicode(line,"utf-8").strip().replace("\n","").replace("\r","").replace("*************","NaN").split()
+                if not a[0] == "];": new.append(a)
+                #print(a)
+            E = asarray(new,dtype=float)
+
+        # Add a first column that contains the stream number
+        E = insert(E,0,self.id,axis=1)
+
+        # # Also add an empty first row, so that the indices
+        # # match fontina's old code!
+        # E = insert(E,0,E[0,:]*0.0,axis=0)
+
+        print('Checking GATEX output:')
+        set_printoptions(precision=3,linewidth=150)
+        print("Exergy table =")
+        print("Columns: stream num., mdot [kg/s], T [K], p[bar], H [MW], S [kW/K], EPH [MW], ECH [MW], E [MW]")
+        print(E)
+        #---------------------------------------------------------------------##
+
+        ## Store the output values back in our stream object
+        self.state['H']     = E[0,4]
+        self.state['S']     = E[0,5]
+        self.state['E_ph']  = E[0,6]
+        self.state['E_ch']  = E[0,7]
+        self.state['E_tot'] = E[0,8]
+
+        # Done
+
+        return
+
+    def stream_to_gatex_files(self,fldr):
+        '''Translate a stream object into an array readable by GATEX.'''
+
+        ## CODE below to output in format for GATEX!!
+        ## ajr: need to modify this so that we generate it from the streams object, not the data table.
+
+        # Get local variable for current stream
+        stream = self
+        state  = stream.state
+
+        # Make the output array and headings we want for each column
+        # Note: here the heading 'x' stands for vfrac:vapor fraction; 'SE' stands for entropy
+        header = array(["STREAM","mdot","T","p","x","SE","Ar","CO2","CO","COS","H2O","XX","CH4","H2","H2S","N2","O2","SO2","H"])
+
+        try:
+            id = float(stream.id)
+        except:
+            id = 1000+randint(1)
+            print("Stream {}: Warning: generated random number for "\
+                  "stream number to send to GATEX: {}".format(key,id))
+
+        data    = zeros(len(header))
+        data[0] = id
+        data[1] = stream.state['mdot']
+        data[2] = stream.state['T'] - 273.15
+        data[3] = stream.state['p']
+        data[4] = stream.state['phase'][0]    # vfrac is called 'x' in this table!
+        data[5] = stream.state['s']           # Gatex doesn't actually use this apparently!
+
+        # Now loop over substances in header
+        # and insert the molar fraction into the table as necessary
+        substances = stream.comp.keys()
+        ioffset = 6
+        for i,head in enumerate(header[ioffset:]):
+            if head in substances:
+                data[ioffset+i] = stream.comp[head].state['x']
+
+        ## Eliminate nan's from the table, GATEX cannot read them
+        data[isnan(data)] = 0.0
 
         # print('======================')
         # print("Generating GATEX input files")
@@ -689,100 +778,9 @@ Stream {}: Warning: total exergy calculations do not match!
 
         #---------------------------------------------------------------------##
 
-        # Now call gatex #######################################################
-        print("Calling GATEX: stream {:d}, T = {:6.1f}, P = {:6.3f}".format(self.id,state['T'],state['p']))
-
-        # Determine whether to use wine or not
-        # (If on linux or mac, use wine)
-        try:
-            uname = os.uname()    # Operating system info
-            call_prefix = ""
-            if ( uname[0] in ["Darwin"] ): call_prefix = "wine "
-        except:
-            call_prefix = ""
-
-        ## Now call gatex and cross fingers !!!
-        os.system((call_prefix+gatex_exec))
-
-
-        # If it worked, load the exergies
-        with open('exergies.m', 'rb') as f:
-            contents = f.readlines()[37:]
-
-            new = []
-            for line in contents:
-                a = unicode(line,"utf-8").strip().replace("\n","").replace("\r","").replace("*************","NaN").split()
-                if not a[0] == "];": new.append(a)
-                #print(a)
-            E = asarray(new,dtype=float)
-
-        # Add a first column that contains the stream number
-        E = insert(E,0,data[0],axis=1)
-
-        # # Also add an empty first row, so that the indices
-        # # match fontina's old code!
-        # E = insert(E,0,E[0,:]*0.0,axis=0)
-
-        # print('Checking GATEX output:')
-        # set_printoptions(precision=3,linewidth=150)
-        # print("Exergy table =")
-        # print("Columns: stream num., mdot [kg/s], T [K], p[bar], H [MW], S [kW/K], EPH [MW], ECH [MW], E [MW]")
-        # print(E)
-        #---------------------------------------------------------------------##
-
-        ## Store the output values back in our stream object
-        self.state['H']     = E[0,4]
-        self.state['S']     = E[0,5]
-        self.state['E_ph']  = E[0,6]
-        self.state['E_ch']  = E[0,7]
-        self.state['E_tot'] = E[0,8]
-
-        # Done
+        # Done! All three gatex input files have been written with stream information
 
         return
-
-    def stream_to_gatex(self):
-        '''Translate a stream object into an array readable by GATEX.'''
-
-        ## CODE below to output in format for GATEX!!
-        ## ajr: need to modify this so that we generate it from the streams object, not the data table.
-
-        # Get local variable for current stream
-        stream = self
-
-        # Make the output array and headings we want for each column
-        # Note: here the heading 'x' stands for vfrac:vapor fraction; 'SE' stands for entropy
-        header = array(["STREAM","mdot","T","p","x","SE","Ar","CO2","CO","COS","H2O","XX","CH4","H2","H2S","N2","O2","SO2","H"])
-        ncols = len(header)
-        out = zeros(ncols)
-
-        try:
-            id = float(stream.id)
-        except:
-            id = 1000+randint(1)
-            print("Stream {}: Warning: generated random number for "\
-                  "stream number to send to GATEX: {}".format(key,id))
-
-        out[0] = id
-        out[1] = stream.state['mdot']
-        out[2] = stream.state['T']
-        out[3] = stream.state['p']
-        out[4] = stream.state['phase'][0]    # vfrac is called 'x' in this table!
-        out[5] = stream.state['s']           # Gatex doesn't actually use this apparently!
-
-        # Now loop over substances in header
-        # and insert the molar fraction into the table as necessary
-        substances = stream.comp.keys()
-        ioffset = 6
-        for i,head in enumerate(header[ioffset:]):
-            if head in substances:
-                out[ioffset+i] = stream.comp[head].state['x']
-
-        ## Eliminate nan's from the table, GATEX cannot read them
-        out[isnan(out)] = 0.0
-
-        # Return the array of stream data in ebsilon format
-        return out
 
     def __repr__(self):
 
