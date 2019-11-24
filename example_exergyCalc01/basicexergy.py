@@ -44,16 +44,16 @@ sheetname_out = "gatex"
 ## Test cases
 
 if True:
-    s1 = stream(id=1,T=298.15,p=1.013,mdot=1,composition=[('CH4',1)])
-    s2 = stream(id=1,T=298.15,p=1.013,mdot=1,composition=[('CH4',1)])
+    s1 = stream(id=1,T=298.15,p=1.013,mdot=1,composition=[('CH4',1)],exergy_type="Ahrends")
+    s2 = stream(id=1,T=298.15,p=1.013,mdot=1,composition=[('CH4',1)],exergy_type="gatex")
 
-    s1.calc_exergy(exergy_type="Ahrends")
-    s2.calc_exergy_gatex(gatex_exec="../gatex_pc_if97_mj.exe")
+    # s1.calc_exergy(exergy_type="Ahrends")
+    # s2.calc_exergy_gatex(gatex_exec="../gatex_pc_if97_mj.exe")
 
     print(s1)
     print("\n ======= \n")
     print(s2)
-    
+
 if False:
 
     temps = arange(270,331)

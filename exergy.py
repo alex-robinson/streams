@@ -277,7 +277,7 @@ class stream:
     given stream and calculation of its exergy.
     '''
 
-    def __init__(self,id,T,p,mdot,composition,phase=[1.0,0.0,0.0],T0=298.15,p0=1.013):
+    def __init__(self,id,T,p,mdot,composition,phase=[1.0,0.0,0.0],T0=298.15,p0=1.013,exergy_type=None):
         '''
         Initialize a stream
           id = stream number/name
@@ -436,13 +436,24 @@ class stream:
             state['H'] = state['h']  * state['mdot'] / ((state['MW']*1e-3)*1e6)
             state['S'] = state['s']  * state['mdot'] / ((state['MW']*1e-3)*1e3)
 
-
+        # Update stream information with locally defined values
         self.id    = id
         self.idstr = idstr
         self.isH2O = isH2O
         self.state = state
         self.comp  = comp
         self.comp0 = comp0
+
+        if not exergy_type is None:
+            # Finally, calculate exergy if desired
+
+            if exergy_type == "gatex":
+                self.calc_exergy_gatex(gatex_exec="../gatex_pc_if97_mj.exe")
+            elif exergy_type in ["Ahrends","Sahrgut"]:
+                self.calc_exergy(exergy_type)
+            else:
+                print("Stream {}: exergy_type not recognized: {}.".format(self.idstr,exergy_type))
+
 
         return
 
@@ -613,7 +624,7 @@ Stream {}: Warning: total exergy calculations do not match!
         state = self.state
 
         # Save stream information to gatex input files (gate.inp,flows.prn,composition.prn)
-        data = self.stream_to_gatex_files(fldr)
+        self.stream_to_gatex_files()
 
         # Now call gatex #######################################################
         print("Calling GATEX: stream {:d}, T = {:6.1f}, P = {:6.3f}".format(self.id,state['T'],state['p']))
@@ -667,7 +678,7 @@ Stream {}: Warning: total exergy calculations do not match!
 
         return
 
-    def stream_to_gatex_files(self,fldr):
+    def stream_to_gatex_files(self):
         '''Translate a stream object into an array readable by GATEX.'''
 
         ## CODE below to output in format for GATEX!!
@@ -709,6 +720,10 @@ Stream {}: Warning: total exergy calculations do not match!
 
         # print('======================')
         # print("Generating GATEX input files")
+
+        # Folder to save gatex files, hard coded to be the current directory,
+        # since gatex will be called from here.
+        fldr = "./"
 
         # Define important gatex filenames
         gatex_f1 = os.path.join(fldr,"gate.inp")
