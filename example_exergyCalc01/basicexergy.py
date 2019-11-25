@@ -6,6 +6,9 @@ import os,sys,subprocess,string
 from collections import OrderedDict
 import openpyxl as xl                 # For writing/reading excel files
 
+from thermopy import iapws
+from thermopy import nasa9polynomials as nasa9
+
 #import exergy
 #import streams
 
@@ -40,6 +43,16 @@ sheetname_out = "gatex"
 ## BELOW HERE, begin the
 ## individual calculations
 ########
+
+## Test thermopy steamtables
+x = iapws.Water(p=1013.0,T=298.15)
+print("H2O: T = {}, P = {}, H = {}".format(x.T,x.p,x.enthalpy()))
+
+ndb = nasa9.Database()
+element = ndb.set_compound('C8H18,n-octane')
+print("element {}: H_formation = {}, cp(T=298.15) = {}, Molecular weight = {}".format(element.inp_name,element.enthalpy_of_formation,element.heat_capacity(298.15),element.molecular_weight))
+
+sys.exit()
 
 ## Test cases
 
