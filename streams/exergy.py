@@ -5,10 +5,10 @@ import openpyxl as xl                 # For writing/reading excel files
 
 from copy import deepcopy
 import re
-
+import pkg_resources
 from numpy import *
 
-def load_reference(filename="ReferenceTables.xlsx"):
+def load_reference(filename="ReferenceTables.xlsx",verbose=True):
     '''
     Load the reference data from the excel tables.
     '''
@@ -87,7 +87,7 @@ def load_reference(filename="ReferenceTables.xlsx"):
         if mod(i+1,12) == 0: text = text + "\n"
     text = text + "\n" + "=" * 80
 
-    print(text)
+    if verbose: print(text)
 
     return refs
 
@@ -173,6 +173,10 @@ Stream {}: {}: Error: molar fraction x must be between 0 and 1!
 
         # Generate the initial state of this substance in the stream
         state = OrderedDict(T=T,p=p,mdot=mdot*x,x=x)
+
+        # Load reference substance values
+        REF_FILE = pkg_resources.resource_filename('streams', 'data/ReferenceTables.xlsx')
+        refs     = load_reference(REF_FILE,verbose=False)
 
         # Now check that we can actually model this substance
         nameref = name
@@ -445,7 +449,10 @@ class stream:
             # Finally, calculate exergy if desired
 
             if exergy_type == "gatex":
-                self.calc_exergy_gatex(gatex_exec="../gatex_pc_if97_mj.exe")
+                GATEX_EXE_FILE = pkg_resources.resource_filename('streams', 'gatex_pc_if97_mj.exe')
+                #print(GATEX_EXE_FILE)
+                #sys.exit()
+                self.calc_exergy_gatex(gatex_exec=GATEX_EXE_FILE)
             elif exergy_type in ["Ahrends","Sahrgut"]:
                 self.calc_exergy(exergy_type)
             else:
@@ -637,7 +644,7 @@ Stream {}: Warning: total exergy calculations do not match!
 
         ## Now call gatex and cross fingers !!!
         os.system((call_prefix+gatex_exec))
-
+        #os.system((call_prefix+GATEX_EXE_FILE)
 
         # If it worked, load the exergies
         with open('exergies.m', 'rb') as f:
@@ -657,11 +664,11 @@ Stream {}: Warning: total exergy calculations do not match!
         # # match fontina's old code!
         # E = insert(E,0,E[0,:]*0.0,axis=0)
 
-        print('Checking GATEX output:')
-        set_printoptions(precision=3,linewidth=150)
-        print("Exergy table =")
-        print("Columns: stream num., mdot [kg/s], T [K], p[bar], H [MW], S [kW/K], EPH [MW], ECH [MW], E [MW]")
-        print(E)
+        # print('Checking GATEX output:')
+        # set_printoptions(precision=3,linewidth=150)
+        # print("Exergy table =")
+        # print("Columns: stream num., mdot [kg/s], T [K], p[bar], H [MW], S [kW/K], EPH [MW], ECH [MW], E [MW]")
+        # print(E)
         #---------------------------------------------------------------------##
 
         ## Store the output values back in our stream object

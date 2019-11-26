@@ -5,8 +5,10 @@
 import os,sys,subprocess,string
 from collections import OrderedDict
 import openpyxl as xl                 # For writing/reading excel files
+from numpy import *
 
-import exergy as ex
+#import streams as st
+from streams import exergy as ex
 
 from thermopy import iapws
 from thermopy import nasa9polynomials as nasa9
@@ -28,8 +30,9 @@ SCRIPTDIR = "/Users/robinson/models/streams/"
 #exec(open(EXERGY).read())
 
 # Load reference substance values
-ref_file = SCRIPTDIR + "/" + "ReferenceTables.xlsx"
-refs = ex.load_reference(ref_file)
+#ref_file = SCRIPTDIR + "/" + "ReferenceTables.xlsx"
+#refs = st.exergy.load_reference(st.REF_FILE)
+#print(refs)
 
 filename_in  = "ExampleSimulation.xlsx"
 filename_out = filename_in
@@ -54,11 +57,11 @@ ndb = nasa9.Database()
 element = ndb.set_compound('C8H18,n-octane')
 print("element {}: H_formation = {}, cp(T=298.15) = {}, Molecular weight = {}".format(element.inp_name,element.enthalpy_of_formation,element.heat_capacity(298.15),element.molecular_weight))
 
-sys.exit()
+#sys.exit()
 
 ## Test cases
 
-if True:
+if False:
     s1 = ex.stream(id=1,T=298.15,p=1.013,mdot=1,composition=[('CH4',1)],exergy_type="Ahrends")
     s2 = ex.stream(id=1,T=298.15,p=1.013,mdot=1,composition=[('CH4',1)],exergy_type="gatex")
 
@@ -69,7 +72,7 @@ if True:
     print("\n ======= \n")
     print(s2)
 
-if False:
+if True:
 
     temps = arange(270,331)
     eph1  = []
@@ -78,11 +81,8 @@ if False:
     for temp in temps:
 
         ## Test cases
-        s1 = ex.stream(id=1,T=temp,p=1.013,mdot=1,composition=[('CH4',1.0)])
-        s2 = ex.stream(id=2,T=temp,p=1.013,mdot=1,composition=[('CH4',1.0)])
-
-        s1.calc_exergy(exergy_type="Ahrends")
-        s2.calc_exergy_gatex(gatex_exec="../gatex_pc_if97_mj.exe")
+        s1 = ex.stream(id=1,T=temp,p=1.013,mdot=1,composition=[('CH4',1.0)],exergy_type="Ahrends")
+        s2 = ex.stream(id=2,T=temp,p=1.013,mdot=1,composition=[('CH4',1.0)],exergy_type="gatex")
 
         eph1.append(s1.state['E_ph'])
         eph2.append(s2.state['E_ph'])
