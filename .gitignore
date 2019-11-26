@@ -1,2 +1,7 @@
 .DS_Store
+build
+dist
+streams.egg-info
+__pycache__
+*/__pycache__
 

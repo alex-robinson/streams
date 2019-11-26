@@ -1,6 +1,3 @@
-######
-## Should be loaded in the pylab environment: ipython -pylab
-## Call: execfile("streams.py")
 
 import os,sys,subprocess,string
 from collections import OrderedDict

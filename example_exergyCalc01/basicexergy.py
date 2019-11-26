@@ -6,6 +6,8 @@ import os,sys,subprocess,string
 from collections import OrderedDict
 import openpyxl as xl                 # For writing/reading excel files
 
+import exergy as ex
+
 from thermopy import iapws
 from thermopy import nasa9polynomials as nasa9
 
@@ -18,16 +20,16 @@ from thermopy import nasa9polynomials as nasa9
 SCRIPTDIR = "/Users/robinson/models/streams/"
 
 # Now define locations of gatex and streams.py
-STREAMS   = os.path.join(SCRIPTDIR, "streams.py")
-EXERGY    = os.path.join(SCRIPTDIR, "exergy.py")
+#STREAMS   = os.path.join(SCRIPTDIR, "streams.py")
+#EXERGY    = os.path.join(SCRIPTDIR, "exergy.py")
 
 # And import the needed exergy calculating functions
 #exec(open(STREAMS).read())
-exec(open(EXERGY).read())
+#exec(open(EXERGY).read())
 
 # Load reference substance values
 ref_file = SCRIPTDIR + "/" + "ReferenceTables.xlsx"
-refs = load_reference(ref_file)
+refs = ex.load_reference(ref_file)
 
 filename_in  = "ExampleSimulation.xlsx"
 filename_out = filename_in
@@ -57,8 +59,8 @@ sys.exit()
 ## Test cases
 
 if True:
-    s1 = stream(id=1,T=298.15,p=1.013,mdot=1,composition=[('CH4',1)],exergy_type="Ahrends")
-    s2 = stream(id=1,T=298.15,p=1.013,mdot=1,composition=[('CH4',1)],exergy_type="gatex")
+    s1 = ex.stream(id=1,T=298.15,p=1.013,mdot=1,composition=[('CH4',1)],exergy_type="Ahrends")
+    s2 = ex.stream(id=1,T=298.15,p=1.013,mdot=1,composition=[('CH4',1)],exergy_type="gatex")
 
     # s1.calc_exergy(exergy_type="Ahrends")
     # s2.calc_exergy_gatex(gatex_exec="../gatex_pc_if97_mj.exe")
@@ -76,8 +78,8 @@ if False:
     for temp in temps:
 
         ## Test cases
-        s1 = stream(id=1,T=temp,p=1.013,mdot=1,composition=[('CH4',1.0)])
-        s2 = stream(id=2,T=temp,p=1.013,mdot=1,composition=[('CH4',1.0)])
+        s1 = ex.stream(id=1,T=temp,p=1.013,mdot=1,composition=[('CH4',1.0)])
+        s2 = ex.stream(id=2,T=temp,p=1.013,mdot=1,composition=[('CH4',1.0)])
 
         s1.calc_exergy(exergy_type="Ahrends")
         s2.calc_exergy_gatex(gatex_exec="../gatex_pc_if97_mj.exe")

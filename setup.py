@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="streams-rbnsn", # Replace with your own username
+    name="streams", # Replace with your own username
     version="0.0.1",
     author="Alexander Robinson and Fontina Petrakopoulou",
     author_email="robinson@ucm.es",
